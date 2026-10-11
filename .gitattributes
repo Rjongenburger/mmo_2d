@@ -1,0 +1,6 @@
+# Unity YAML assets: let git treat them as text, merge with UnityYAMLMerge if configured
+*.unity    text eol=lf merge=unityyamlmerge
+*.prefab   text eol=lf merge=unityyamlmerge
+*.asset    text eol=lf merge=unityyamlmerge
+*.meta     text eol=lf
+*.cs       text diff=csharp
