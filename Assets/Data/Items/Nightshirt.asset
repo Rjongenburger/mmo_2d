@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e41ecc48b4bb34372b68d0e358d54470, type: 3}
+  m_Name: Nightshirt
+  m_EditorClassIdentifier: TopDown::TopDown.ItemDefinition
+  displayName: Nightshirt
+  icon: {fileID: 21300000, guid: c8392658a98594c79a8c068074dc66d2, type: 3}
+  stackable: 0
+  examine: You went to bed in this. Not exactly armour.
+  equipSlot: 6

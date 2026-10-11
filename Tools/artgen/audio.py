@@ -72,22 +72,6 @@ def wind_loop(path, seconds=12):
     _write(path, _loop_crossfade(out, fade), 0.8)
 
 
-def fire_loop(path, seconds=6):
-    rnd = random.Random(2)
-    n, fade = seconds * RATE, RATE // 2
-    rumble, crack_hp = Biquad("lp", 180), Biquad("hp", 1800)
-    out, crackle, crackle_amp = [], 0, 0.0
-    for i in range(n + fade):
-        s = rumble(rnd.uniform(-1, 1)) * 1.4
-        if crackle <= 0 and rnd.random() < 14 / RATE:
-            crackle, crackle_amp = rnd.randrange(30, 180), rnd.uniform(0.3, 1.0)
-        if crackle > 0:
-            s += crack_hp(rnd.uniform(-1, 1)) * crackle_amp * (crackle / 180)
-            crackle -= 1
-        out.append(s)
-    _write(path, _loop_crossfade(out, fade), 0.7)
-
-
 def portal(path, seconds=3.0):
     rnd = random.Random(3)
     n = int(seconds * RATE)
@@ -104,40 +88,6 @@ def portal(path, seconds=3.0):
         shimmer = math.sin(2 * math.pi * 1760 * t) * (0.5 + 0.5 * math.sin(2 * math.pi * 11 * t)) * 0.25
         out.append(env * (whoosh + chord * 0.18 + shimmer * p))
     _write(path, out, 0.9)
-
-
-def chop(path):
-    rnd = random.Random(4)
-    n = int(0.32 * RATE)
-    hp = Biquad("hp", 1200)
-    out = []
-    for i in range(n):
-        t = i / RATE
-        click = hp(rnd.uniform(-1, 1)) * math.exp(-t * 90)
-        f = 190 - 70 * min(1, t / 0.08)
-        body = math.sin(2 * math.pi * f * t) * math.exp(-t * 22)
-        knock = math.sin(2 * math.pi * 520 * t) * math.exp(-t * 60) * 0.4
-        out.append(click * 0.9 + body + knock)
-    _write(path, out, 0.95)
-
-
-def tree_fall(path):
-    rnd = random.Random(5)
-    n = int(1.4 * RATE)
-    lp, thud_lp = Biquad("lp", 900), Biquad("lp", 200)
-    out, phase = [], 0.0
-    for i in range(n):
-        t = i / RATE
-        s = 0.0
-        if t < 0.75:  # creak: wobbling sawtooth through a low-pass
-            f = 95 + 35 * math.sin(2 * math.pi * 3 * t) + rnd.uniform(-4, 4)
-            phase = (phase + f / RATE) % 1
-            s += lp(phase * 2 - 1) * min(1, t / 0.1) * (1 - t / 0.75) * 0.8
-        if t > 0.8:  # thud
-            tt = t - 0.8
-            s += (math.sin(2 * math.pi * 62 * tt) + thud_lp(rnd.uniform(-1, 1)) * 2.5) * math.exp(-tt * 9)
-        out.append(s)
-    _write(path, out, 0.95)
 
 
 def pickup(path):
@@ -178,20 +128,6 @@ def land(path):
     _write(path, out, 0.7)
 
 
-def ignite(path):
-    rnd = random.Random(8)
-    n = int(0.8 * RATE)
-    lp = Biquad("lp", 300)
-    out = []
-    for i in range(n):
-        p = i / n
-        if i % 32 == 0:
-            lp.set(300 + 2500 * p * (1 - p) * 2)
-        env = min(1, p / 0.15) * (1 - p) ** 1.3
-        out.append(lp(rnd.uniform(-1, 1)) * env)
-    _write(path, out, 0.8)
-
-
 def ui_click(path):
     n = int(0.05 * RATE)
     out = [math.sin(2 * math.pi * 1400 * i / RATE) * math.exp(-i / RATE * 120) for i in range(n)]
@@ -199,6 +135,175 @@ def ui_click(path):
 
 
 ALL = {
-    "WindLoop": wind_loop, "FireLoop": fire_loop, "Portal": portal, "Chop": chop, "TreeFall": tree_fall,
-    "Pickup": pickup, "Leap": leap, "Land": land, "Ignite": ignite, "UiClick": ui_click,
+    "WindLoop": wind_loop, "Portal": portal, "Pickup": pickup, "Leap": leap, "Land": land, "UiClick": ui_click,
 }
+
+
+def fire_cast(path):
+    rnd = random.Random(11)
+    n = int(0.45 * RATE)
+    bp, lp = Biquad("bp", 500, 1.2), Biquad("lp", 300)
+    out = []
+    for i in range(n):
+        p = i / n
+        if i % 32 == 0:
+            bp.set(500 + 2200 * p)
+        env = min(1, p / 0.08) * (1 - p) ** 1.4
+        roar = lp(rnd.uniform(-1, 1)) * 2.5 * (1 - p)
+        out.append((bp(rnd.uniform(-1, 1)) * 1.8 + roar) * env)
+    _write(path, out, 0.85)
+
+
+def fire_hit(path):
+    rnd = random.Random(12)
+    n = int(0.7 * RATE)
+    lp = Biquad("lp", 900)
+    out = []
+    for i in range(n):
+        t = i / RATE
+        if i % 32 == 0:
+            lp.set(900 * math.exp(-t * 4) + 120)
+        boom = math.sin(2 * math.pi * (90 - 40 * min(1, t / 0.3)) * t) * math.exp(-t * 7)
+        crackle = lp(rnd.uniform(-1, 1)) * 2.4 * math.exp(-t * 5)
+        out.append(boom + crackle)
+    _write(path, out, 0.9)
+
+
+def caw(path):
+    """Two harsh crow calls: a buzzy, pitch-dropping sawtooth through a nasal band-pass."""
+    rnd = random.Random(13)
+    n = int(0.62 * RATE)
+    bp = Biquad("bp", 1400, 2.5)
+    out, phase = [], 0.0
+    for i in range(n):
+        t = i / RATE
+        local = t if t < 0.26 else t - 0.32
+        on = (0 <= local < 0.24)
+        f = 620 - 260 * (local / 0.24) + 25 * math.sin(2 * math.pi * 38 * t) if on else 0
+        phase = (phase + f / RATE) % 1
+        saw = (phase * 2 - 1) if on else 0
+        env = (math.sin(min(1, local / 0.24) * math.pi) ** 0.6) if on else 0
+        out.append(bp(saw + rnd.uniform(-0.25, 0.25) * on) * 3 * env)
+    _write(path, out, 0.75)
+
+
+def crow_die(path):
+    rnd = random.Random(14)
+    n = int(0.55 * RATE)
+    bp = Biquad("bp", 1800, 2)
+    lp = Biquad("lp", 400)
+    out, phase = [], 0.0
+    for i in range(n):
+        t = i / RATE
+        f = 900 * math.exp(-t * 3.5) + 200
+        phase = (phase + f / RATE) % 1
+        squawk = bp(phase * 2 - 1) * 2.5 * math.exp(-t * 6)
+        puff = lp(rnd.uniform(-1, 1)) * 1.5 * math.exp(-max(0, t - 0.15) * 10) * (t > 0.15)
+        out.append(squawk + puff)
+    _write(path, out, 0.75)
+
+
+def jump(path):
+    rnd = random.Random(15)
+    n = int(0.22 * RATE)
+    bp = Biquad("bp", 300, 2)
+    out = []
+    for i in range(n):
+        p = i / n
+        if i % 16 == 0:
+            bp.set(300 + 900 * p)
+        out.append(bp(rnd.uniform(-1, 1)) * math.sin(p * math.pi) * 2 + math.sin(2 * math.pi * (300 + 300 * p) * i / RATE) * 0.15 * (1 - p))
+    _write(path, out, 0.55)
+
+
+def fly(path):
+    rnd = random.Random(16)
+    n = int(1.1 * RATE)
+    bp = Biquad("bp", 300, 1.5)
+    out = []
+    for i in range(n):
+        t = i / RATE
+        p = i / n
+        if i % 32 == 0:
+            bp.set(300 + 1200 * math.sin(p * math.pi))
+        swell = bp(rnd.uniform(-1, 1)) * 2 * math.sin(p * math.pi)
+        chime = sum(math.sin(2 * math.pi * f * t) for f in (1320, 1760, 2640)) * 0.12 * math.exp(-t * 3)
+        out.append(swell + chime)
+    _write(path, out, 0.8)
+
+
+def fall(path):
+    rnd = random.Random(17)
+    n = int(1.2 * RATE)
+    bp = Biquad("bp", 600, 1.5)
+    out, phase = [], 0.0
+    for i in range(n):
+        t = i / RATE
+        p = i / n
+        f = 1100 * (1 - p) + 180
+        phase += f / RATE
+        whistle = math.sin(2 * math.pi * phase) * 0.35 * (1 - p)
+        if i % 32 == 0:
+            bp.set(400 + 600 * (1 - p))
+        wind = bp(rnd.uniform(-1, 1)) * 1.5 * min(1, p * 3)
+        out.append((whistle + wind) * (1 - max(0, p - 0.8) / 0.2))
+    _write(path, out, 0.75)
+
+
+def hurt(path):
+    n = int(0.22 * RATE)
+    out = []
+    for i in range(n):
+        t = i / RATE
+        f = 420 - 240 * min(1, t / 0.18)
+        sq = 1 if math.sin(2 * math.pi * f * t) > 0 else -1
+        out.append((sq * 0.5 + math.sin(2 * math.pi * 70 * t)) * math.exp(-t * 14))
+    _write(path, out, 0.6)
+
+
+def blip(path):
+    """Dialogue "voice" tick; pitched per speaker in-engine."""
+    n = int(0.045 * RATE)
+    out = []
+    for i in range(n):
+        t = i / RATE
+        sq = 1 if math.sin(2 * math.pi * 520 * t) > 0 else -1
+        out.append((sq * 0.6 + math.sin(2 * math.pi * 1040 * t) * 0.3) * min(1, t * 900) * math.exp(-t * 55))
+    _write(path, out, 0.35)
+
+
+def _arpeggio(path, notes, step, length, square=False, gain=0.7):
+    n = int(length * RATE)
+    out = []
+    for i in range(n):
+        t = i / RATE
+        s = 0.0
+        for k, f in enumerate(notes):
+            start = k * step
+            if t < start:
+                continue
+            tt = t - start
+            wave = math.sin(2 * math.pi * f * tt)
+            if square:
+                wave = 0.6 * (1 if wave > 0 else -1) + 0.4 * wave
+            s += wave * math.exp(-tt * 3.2) * min(1, tt * 300)
+        out.append(s)
+    _write(path, out, gain)
+
+
+def spell_learned(path):
+    _arpeggio(path, [523.25, 659.25, 783.99, 1046.5, 1318.5], 0.11, 1.6)
+
+
+def level_up(path):
+    _arpeggio(path, [392.0, 523.25, 659.25, 783.99, 1046.5, 1046.5], 0.09, 1.5, square=True, gain=0.55)
+
+
+def respawn(path):
+    _arpeggio(path, [880.0, 1108.7, 1318.5, 1760.0], 0.07, 1.0, gain=0.5)
+
+
+ALL.update({
+    "FireCast": fire_cast, "FireHit": fire_hit, "Caw": caw, "CrowDie": crow_die, "Jump": jump, "Fly": fly,
+    "Fall": fall, "Hurt": hurt, "Blip": blip, "SpellLearned": spell_learned, "LevelUp": level_up, "Respawn": respawn,
+})

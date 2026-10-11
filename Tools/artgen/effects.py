@@ -156,3 +156,89 @@ def glow_disc(size, color, alpha=120):
     c = Canvas(size, size)
     c.soft_ellipse(size / 2, size / 2, size / 2 - 0.5, size / 2 - 0.5, with_alpha(color, alpha), falloff=0.9)
     return c
+
+
+# ---------------------------------------------------------------- combat
+FIRE = [rgb("#fff8d6"), rgb("#ffe27a"), rgb("#ffb03a"), rgb("#f2671f"), rgb("#b8321a")]
+
+
+def fireball(frame):
+    """16x12 bolt pointing right (rotated in-engine to its direction of travel)."""
+    c = Canvas(16, 12)
+    cx, cy = 11, 6
+    flick = (0, 1, -1)[frame]
+    # trailing tongues
+    for i, (length, dy) in enumerate(((7 + flick, 0), (5 - flick, -2), (5 + flick, 2))):
+        for k in range(length):
+            x = cx - 2 - k
+            fade = k / max(1, length)
+            col = FIRE[min(4, 2 + int(fade * 3))]
+            c.set(x, cy + dy + (1 if (k + frame) % 3 == 0 and dy else 0), with_alpha(col, int(255 * (1 - fade * 0.6))))
+    c.ellipse(cx + 0.5, cy + 0.5, 3.6, 3.4, FIRE[3])
+    c.ellipse(cx + 0.8, cy + 0.5, 2.6, 2.4, FIRE[2])
+    c.ellipse(cx + 1.0, cy + 0.3, 1.6, 1.5, FIRE[1])
+    c.set(cx + 1, cy, FIRE[0])
+    c.set(cx + 2, cy, FIRE[0])
+    return c
+
+
+def explosion(frame):
+    """32x32 burst: flash, expanding fire ring, smoke."""
+    c = Canvas(32, 32)
+    r = 4 + frame * 2.6
+    if frame <= 3:
+        c.ellipse(16, 16, r, r, with_alpha(FIRE[3], 230 - frame * 40))
+        c.ellipse(16, 16, r * 0.75, r * 0.75, with_alpha(FIRE[2], 240 - frame * 50))
+        c.ellipse(16, 16, max(1, r * 0.45 - frame), max(1, r * 0.45 - frame), with_alpha(FIRE[0], 255 - frame * 60))
+    else:
+        smoke = rgb("#6e6470")
+        for (dx, dy, rr) in ((-4, -2, 4), (3, -4, 3.5), (2, 3, 4), (-3, 4, 3)):
+            c.ellipse(16 + dx, 16 + dy - (frame - 4) * 2, rr + frame - 4, rr + frame - 4, with_alpha(smoke, 150 - (frame - 4) * 60))
+    for i in range(8):  # sparks
+        a = i / 8 * math.tau + frame * 0.3
+        d = r + 2
+        x, y = round(16 + math.cos(a) * d), round(16 + math.sin(a) * d)
+        if frame < 5:
+            c.set(x, y, FIRE[1])
+    return c
+
+
+def feather_puff():
+    c = Canvas(5, 3)
+    c.hline(0, 1, 4, rgb("#3a3150"))
+    c.set(4, 0, rgb("#5b4f7a"))
+    c.set(1, 0, rgb("#5b4f7a"))
+    c.set(2, 2, rgb("#28213a"))
+    return c
+
+
+def heart(state):
+    """9x9 heart: full, half or empty."""
+    c = Canvas(9, 9)
+    shape = [".##.##...", "#######..", "#######..", "#######..", ".#####...", "..###....", "...#....."]
+    red, red_hi, red_sh, empty = rgb("#e8413c"), rgb("#ff9b8a"), rgb("#a8242a"), rgb("#3b2a36")
+    for y, row in enumerate(shape):
+        for x, ch in enumerate(row):
+            if ch != "#":
+                continue
+            filled = state == "full" or (state == "half" and x <= 2)
+            col = (red_hi if (x, y) in ((1, 1), (2, 1), (1, 2)) else red_sh if y >= 4 or x >= 6 else red) if filled else empty
+            c.set(x + 1, y + 1, col)
+    c.outline(rgb("#160f14"))
+    return c
+
+
+def continue_arrow():
+    c = Canvas(9, 6)
+    gold, gold_hi = rgb("#e9c46a"), rgb("#fff1b8")
+    for i in range(4):
+        c.hline(1 + i, 1 + i, 7 - 2 * i, gold)
+    c.hline(1, 1, 7, gold_hi)
+    c.outline(rgb("#0b0d16"))
+    return c
+
+
+def white_pixel():
+    c = Canvas(4, 4)
+    c.rect(0, 0, 4, 4, rgb("#ffffff"))
+    return c

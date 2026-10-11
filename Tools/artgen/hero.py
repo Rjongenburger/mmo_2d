@@ -1,14 +1,14 @@
 """Medieval hero (villager in a linen tunic): 32x48 frames.
 
 Rows (directions): down, left, right, up.
-Columns: idle0, idle1, walk0..walk3, chop0 (wind-up), chop1 (strike).
+Columns: idle0, idle1, walk0..walk3, cast0 (wind-up), cast1 (release), fly0..fly1 (riding the gale feather).
 """
-from pixel import Canvas, rgb, sheet
+from pixel import Canvas, rgb, sheet, with_alpha
 
 FRAME_W, FRAME_H = 32, 48
 PIVOT = (16, 2)
 ROW_ORDER = ("down", "left", "right", "up")
-COLUMNS = ("idle0", "idle1", "walk0", "walk1", "walk2", "walk3", "chop0", "chop1")
+COLUMNS = ("idle0", "idle1", "walk0", "walk1", "walk2", "walk3", "cast0", "cast1", "fly0", "fly1")
 
 PAL = {
     "o": rgb("#2b2433"),
@@ -21,8 +21,9 @@ PAL = {
     "P": rgb("#6e5640"), "p": rgb("#4f3d2d"),
     "F": rgb("#4a3628"), "f": rgb("#6e5340"),
 }
-AXE_HANDLE, AXE_HANDLE_HI = rgb("#7a5232"), rgb("#a3714a")
-AXE_HEAD = (rgb("#f0c08a"), rgb("#c8803f"), rgb("#8a4f22"))  # bronze: highlight, base, shade
+FLAME = (rgb("#fff8d6"), rgb("#ffd25a"), rgb("#ff8a2a"), rgb("#d9431c"))  # core, inner, mid, edge
+FEATHER = (rgb("#ffffff"), rgb("#e4f4ff"), rgb("#9fc6e0"), rgb("#8ff0ff"))  # highlight, vane, shade, glow
+QUILL = rgb("#d6b98a")
 
 HEAD_DOWN = [
     ".....o.oo.o.....",
@@ -175,39 +176,6 @@ def _limb(c, p0, p1, sleeve="C", shade="c"):
     c.blit(layer, 0, 0)
 
 
-AXE_BLADE_WIDTHS = (2, 4, 5, 5, 4, 2)  # wedge profile, measured outward from the handle
-
-
-def _axe(c, hand, tip, blade=None):
-    """2px handle from hand to tip with a wedge-shaped bronze head at the tip.
-
-    blade: (dx, dy) unit direction the cutting edge faces; defaults to sideways for
-    vertical handles and downwards for horizontal ones.
-    """
-    layer = Canvas(FRAME_W, FRAME_H)
-    (x0, y0), (x1, y1) = hand, tip
-    dx, dy = x1 - x0, y1 - y0
-    vertical = abs(dy) >= abs(dx)
-    layer.line(x0, y0, x1, y1, AXE_HANDLE)
-    if vertical:
-        layer.line(x0 + 1, y0, x1 + 1, y1, AXE_HANDLE_HI)
-    else:
-        layer.line(x0, y0 - 1, x1, y1 - 1, AXE_HANDLE_HI)
-    if blade is None:
-        blade = ((1 if dx >= 0 else -1), 0) if vertical else (0, (1 if dy >= 0 else -1))
-    hi, base, shade = AXE_HEAD
-    n = len(AXE_BLADE_WIDTHS)
-    for i, width in enumerate(AXE_BLADE_WIDTHS):
-        for j in range(width):
-            col = hi if j == width - 1 else (shade if i >= n - 2 else base)
-            if blade[0]:  # edge faces left/right; rows run along the handle
-                layer.set(x1 + blade[0] * j, y1 - 2 + i, col)
-            else:          # edge faces up/down
-                layer.set(x1 - 2 + i, y1 + blade[1] * j, col)
-    layer.outline(PAL["o"])
-    c.blit(layer, 0, 0)
-
-
 def _front_back(head, torso, bob=0, lift_l=0, lift_r=0, arm_l=0, arm_r=0, arms=True):
     c = Canvas(FRAME_W, FRAME_H)
     _leg(c, 11, LEG_TOP - bob, FEET_Y - lift_l)
@@ -235,63 +203,104 @@ def _side(bob=0, near_dx=0, far_dx=0, near_lift=0, far_lift=0, arm_dx=0, arm=Tru
     return c
 
 
-def _chop_down(strike):
-    c = Canvas(FRAME_W, FRAME_H)
-    _leg(c, 11, LEG_TOP, FEET_Y)
-    _leg(c, 16, LEG_TOP, FEET_Y)
-    if not strike:
-        _axe(c, (16, 11), (17, 3))
-        _limb(c, (11, TORSO_Y + 3), (14, 9))
-        _limb(c, (20, TORSO_Y + 3), (17, 9))
-        c.ascii(TORSO_DOWN, PAL, 9, TORSO_Y)
-        c.ascii(HEAD_DOWN, PAL, 8, HEAD_Y)
-    else:
-        c.ascii(TORSO_DOWN, PAL, 9, TORSO_Y + 1)
-        c.ascii(HEAD_DOWN, PAL, 8, HEAD_Y + 1)
-        _axe(c, (16, TORSO_Y + 9), (16, TORSO_Y + 15), blade=(0, 1))
-        _limb(c, (11, TORSO_Y + 4), (15, TORSO_Y + 9))
-        _limb(c, (20, TORSO_Y + 4), (16, TORSO_Y + 9))
+def _flame(c, cx, cy, big=False):
+    """Small fire orb in the hero's hand (big = the moment the bolt is released)."""
+    core, inner, mid, edge = FLAME
+    r = 3 if big else 2
+    glow = Canvas(FRAME_W, FRAME_H)
+    glow.soft_ellipse(cx + 0.5, cy + 0.5, r + 2.5, r + 2.5, with_alpha(inner, 110), falloff=0.8)
+    c.blit(glow, 0, 0)
+    for y in range(cy - r, cy + r + 1):
+        for x in range(cx - r, cx + r + 1):
+            d = abs(x - cx) + abs(y - cy)
+            if d > r + (1 if big else 0):
+                continue
+            col = core if d == 0 else inner if d <= r - 1 else mid if d == r else edge
+            c.set(x, y, col)
+    for dx in ((-1, 1) if big else (0,)):  # flickering tongues
+        c.set(cx + dx, cy - r - 1, mid)
+    c.set(cx, cy - r - (2 if big else 1), inner)
+
+
+def _feather(c, x0, y0, length=13, droop=0):
+    """The gale feather held overhead, drawn left to right with a glowing edge."""
+    hi, vane, shade, glow = FEATHER
+    for i in range(length):
+        x, y = x0 + i, y0 + (droop if i > length * 0.6 else 0)
+        width = 2 if 2 < i < length - 2 else 1
+        for k in range(1, width + 1):
+            c.set(x, y - k, vane if k < width else hi)
+            c.set(x, y + k, shade if k == width else vane)
+        c.set(x, y, hi if i % 3 else shade)
+    c.set(x0 - 1, y0, QUILL)
+    c.set(x0 - 2, y0 + 1, QUILL)
+    for (x, y) in ((x0 + 2, y0 - 3), (x0 + length - 1, y0 - 2), (x0 + length // 2, y0 + 3)):
+        c.set(x, y, with_alpha(glow, 200))
+
+
+
+def _cast_down(release):
+    c = _front_back(HEAD_DOWN, TORSO_DOWN, arms=False)
+    hand = (16, TORSO_Y + 9) if release else (16, TORSO_Y + 5)
+    _limb(c, (11, TORSO_Y + 3), (hand[0] - 1, hand[1]))
+    _limb(c, (20, TORSO_Y + 3), (hand[0], hand[1]))
+    _flame(c, hand[0], hand[1] + (3 if release else 1), big=release)
     return c
 
 
-def _chop_up(strike):
-    c = Canvas(FRAME_W, FRAME_H)
-    _leg(c, 11, LEG_TOP, FEET_Y)
-    _leg(c, 16, LEG_TOP, FEET_Y)
-    if not strike:
-        c.ascii(TORSO_UP, PAL, 9, TORSO_Y)
-        _axe(c, (16, 11), (15, 3), blade=(-1, 0))
-        _limb(c, (11, TORSO_Y + 3), (14, 9))
-        _limb(c, (20, TORSO_Y + 3), (17, 9))
-        c.ascii(HEAD_UP, PAL, 8, HEAD_Y)
+def _cast_up(release):
+    c = _front_back(HEAD_UP, TORSO_UP, arms=False)
+    _limb(c, (11, TORSO_Y + 3), (10, TORSO_Y + 8))
+    if release:
+        _flame(c, 16, HEAD_Y - 4, big=True)
+        _limb(c, (20, TORSO_Y + 3), (21, TORSO_Y + 7))
     else:
-        _limb(c, (11, TORSO_Y + 4), (14, TORSO_Y + 10))
-        _limb(c, (20, TORSO_Y + 4), (17, TORSO_Y + 10))
-        c.ascii(TORSO_UP, PAL, 9, TORSO_Y + 1)
-        c.ascii(HEAD_UP, PAL, 8, HEAD_Y + 1)
+        _limb(c, (20, TORSO_Y + 3), (23, TORSO_Y - 2))
+        _flame(c, 24, TORSO_Y - 4)
     return c
 
 
-def _chop_right(strike):
-    c = Canvas(FRAME_W, FRAME_H)
-    _leg(c, 11, LEG_TOP, FEET_Y, shade=True, side=True)
-    _leg(c, 15, LEG_TOP, FEET_Y, side=True)
-    if not strike:
-        c.ascii(TORSO_RIGHT, PAL, 8, TORSO_Y)
-        _axe(c, (11, 11), (7, 4), blade=(-1, 0))
-        _limb(c, (14, TORSO_Y + 3), (11, 10))
-        c.ascii(HEAD_RIGHT, PAL, 8, HEAD_Y)
+def _cast_right(release):
+    c = _side(arm=False)
+    if release:
+        _limb(c, (16, TORSO_Y + 4), (24, TORSO_Y + 4))
+        _flame(c, 27, TORSO_Y + 3, big=True)
     else:
-        c.ascii(TORSO_RIGHT, PAL, 9, TORSO_Y + 1)
-        c.ascii(HEAD_RIGHT, PAL, 9, HEAD_Y + 1)
-        _axe(c, (23, TORSO_Y + 5), (27, TORSO_Y + 9), blade=(1, 0))
-        _limb(c, (16, TORSO_Y + 4), (23, TORSO_Y + 5))
+        _limb(c, (15, TORSO_Y + 4), (11, TORSO_Y + 5))
+        _flame(c, 9, TORSO_Y + 3)
+    return c
+
+
+def _fly_front(head, torso, flutter, feather_in_front):
+    c = Canvas(FRAME_W, FRAME_H)
+    # legs dangle, one slightly higher than the other
+    _leg(c, 11, LEG_TOP, FEET_Y - (1 + flutter))
+    _leg(c, 16, LEG_TOP, FEET_Y - (2 - flutter))
+    if not feather_in_front:
+        _feather(c, 9, 9 - flutter, droop=flutter)
+    _limb(c, (11, TORSO_Y + 3), (13, 11))
+    _limb(c, (20, TORSO_Y + 3), (19, 11))
+    c.ascii(torso, PAL, 9, TORSO_Y)
+    c.ascii(head, PAL, 8, HEAD_Y)
+    if feather_in_front:
+        _feather(c, 9, 9 - flutter, droop=flutter)
+    return c
+
+
+def _fly_right(flutter):
+    c = Canvas(FRAME_W, FRAME_H)
+    _leg(c, 9 - flutter, LEG_TOP, FEET_Y - 2, shade=True, side=True)
+    _leg(c, 11 + flutter, LEG_TOP, FEET_Y - 1, side=True)
+    c.ascii(TORSO_RIGHT, PAL, 8, TORSO_Y)
+    _limb(c, (15, TORSO_Y + 3), (18, 11))
+    c.ascii(HEAD_RIGHT, PAL, 8, HEAD_Y)
+    _feather(c, 12, 9 - flutter, droop=flutter)
     return c
 
 
 def build_frames():
     frames = {}
-    for name, head, torso, chop in (("down", HEAD_DOWN, TORSO_DOWN, _chop_down), ("up", HEAD_UP, TORSO_UP, _chop_up)):
+    for name, head, torso, cast in (("down", HEAD_DOWN, TORSO_DOWN, _cast_down), ("up", HEAD_UP, TORSO_UP, _cast_up)):
         frames[name] = [
             _front_back(head, torso),
             _front_back(head, torso, bob=1),
@@ -299,8 +308,10 @@ def build_frames():
             _front_back(head, torso, 1),
             _front_back(head, torso, 0, 1, 0, 1, -1),
             _front_back(head, torso, 1),
-            chop(False),
-            chop(True),
+            cast(False),
+            cast(True),
+            _fly_front(head, torso, 0, name == "down"),
+            _fly_front(head, torso, 1, name == "down"),
         ]
     right = [
         _side(),
@@ -309,8 +320,10 @@ def build_frames():
         _side(1, 1, -1, 0, 1, 0),
         _side(0, -3, 3, 0, 0, 2),
         _side(1, -1, 1, 1, 0, 0),
-        _chop_right(False),
-        _chop_right(True),
+        _cast_right(False),
+        _cast_right(True),
+        _fly_right(0),
+        _fly_right(1),
     ]
     frames["right"] = right
     frames["left"] = [f.flipped() for f in right]
@@ -327,7 +340,8 @@ def frame_names(prefix="Hero"):
 
 
 def head_portrait():
-    """2x upscaled head for dialogue portraits."""
-    c = Canvas(18, 18)
-    c.ascii(HEAD_DOWN, PAL, 1, 1)
+    """48x48 bust (head and shoulders, 2x) for dialogue portraits."""
+    c = Canvas(24, 24)
+    c.ascii(TORSO_DOWN, PAL, 5, 14)
+    c.ascii(HEAD_DOWN, PAL, 4, 1)
     return c.scaled(2)

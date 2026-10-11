@@ -10,6 +10,7 @@ import json
 import os
 
 import audio
+import bird
 import character
 import effects
 import font
@@ -77,6 +78,7 @@ def generate_characters(m):
             "Assets/Art/Characters/Hero.png", hero.frame_names(), hero.PIVOT)
     m.sheet([mage.frame(i) for i in range(len(mage.COLUMNS))], len(mage.COLUMNS),
             "Assets/Art/Characters/Mage.png", mage.frame_names(), mage.PIVOT, collider=[9, 2, 16, 8])
+    m.sheet(bird.build_frames(), len(bird.COLUMNS), "Assets/Art/Characters/Crow.png", bird.frame_names(), bird.PIVOT)
 
 
 def generate_mountains(m):
@@ -93,9 +95,6 @@ def generate_mountains(m):
 
     p = f"{d}/Props"
     m.single(mountain.pine_tree(), f"{p}/PineTree.png", (24, 4), collider=[19, 2, 11, 8])
-    m.single(mountain.stump(), f"{p}/Stump.png", (16, 4), collider=[6, 2, 20, 8])
-    m.single(mountain.chopping_block(), f"{p}/ChoppingBlock.png", (16, 3), collider=[5, 2, 22, 9])
-    m.single(mountain.axe_in_block(), f"{p}/AxeInBlock.png", (12, 4))
     m.single(mountain.boulder("big", False, 1), f"{p}/BoulderBig.png", (20, 3), collider=[3, 2, 34, 12])
     m.single(mountain.boulder("big", True, 1), f"{p}/BoulderBigSnow.png", (20, 3), collider=[3, 2, 34, 12])
     m.single(mountain.boulder("small", False, 2), f"{p}/BoulderSmall.png", (13, 2), collider=[2, 1, 22, 8])
@@ -112,10 +111,6 @@ def generate_mountains(m):
     m.sheet([mountain.grass_tuft(f, v) for v in range(3) for f in range(4)], 4, f"{p}/GrassTuft.png",
             [f"GrassTuft_{v}_{f}" for v in range(3) for f in range(4)], (6, 1))
     m.single(mountain.dead_bush(), f"{p}/DeadBush.png", (11, 1))
-    m.sheet([mountain.campfire(f) for f in range(4)], 4, f"{p}/Campfire.png", [f"Campfire_{i}" for i in range(4)], (16, 4),
-            collider=[6, 1, 20, 9])
-    m.single(mountain.ashes(), f"{p}/Ashes.png", (16, 4))
-
 
 def generate_effects(m):
     d = "Assets/Art/Effects"
@@ -134,6 +129,10 @@ def generate_effects(m):
     m.single(effects.smoke(), f"{d}/Smoke.png")
     from pixel import rgb
     m.single(effects.glow_disc(32, rgb("#ffffff"), 140), f"{d}/Glow.png")
+    m.sheet([effects.fireball(f) for f in range(3)], 3, f"{d}/Fireball.png", [f"Fireball_{i}" for i in range(3)], (11, 6))
+    m.sheet([effects.explosion(f) for f in range(6)], 6, f"{d}/Explosion.png", [f"Explosion_{i}" for i in range(6)], (16, 16))
+    m.single(effects.feather_puff(), f"{d}/FeatherPuff.png")
+    m.single(effects.white_pixel(), f"{d}/WhitePixel.png", (0, 0))
 
 
 def generate_house(m):
@@ -171,7 +170,23 @@ def generate_ui(m):
     m.single(ui.tab(True), f"{d}/TabActive.png", border=(3, 3, 3, 3))
     m.single(ui.icon_backpack(), f"{d}/IconBackpack.png")
     m.single(ui.icon_stats(), f"{d}/IconStats.png")
-    m.single(ui.icon_woodcutting(), f"{d}/IconWoodcutting.png")
+    m.single(ui.icon_equipment(), f"{d}/IconEquipment.png")
+    m.single(ui.icon_spellbook(), f"{d}/IconSpellbook.png")
+    m.single(ui.icon_magic_skill(), f"{d}/IconMagic.png")
+    m.single(ui.dialogue_panel(), f"{d}/DialoguePanel.png", border=(8, 8, 8, 8))
+    m.single(ui.name_plate(), f"{d}/NamePlate.png", border=(5, 5, 5, 5))
+    m.single(ui.portrait_ring(), f"{d}/PortraitRing.png", border=(4, 4, 4, 4))
+    m.single(ui.portrait_backdrop(), f"{d}/PortraitBackdrop.png")
+    m.single(effects.continue_arrow(), f"{d}/ContinueArrow.png")
+    m.sheet([effects.heart(s) for s in ("full", "half", "empty")], 3, f"{d}/Heart.png", ["Heart_full", "Heart_half", "Heart_empty"], (4.5, 4.5))
+    m.single(ui.equip_slot_frame(), f"{d}/EquipSlot.png", border=(4, 4, 4, 4))
+    for slot in ui.SLOT_SILHOUETTES:
+        m.single(ui.slot_silhouette(slot), f"{d}/Slots/Slot{slot}.png")
+    for kind in ("FireBolt", "Gust", "Frost", "Mend"):
+        m.single(ui.spell_icon(kind), f"{d}/Spells/Spell{kind}.png")
+        m.single(ui.spell_icon(kind, locked=True), f"{d}/Spells/Spell{kind}Locked.png")
+    m.single(ui.spell_frame(True), f"{d}/SpellFrameActive.png")
+    m.single(ui.spell_frame(False), f"{d}/SpellFrame.png")
     m.single(ui.keycap(), f"{d}/Keycap.png")
     m.single(ui.portrait_frame(), f"{d}/PortraitFrame.png", border=(3, 3, 3, 3))
     m.single(ui.skill_tile(), f"{d}/SkillTile.png", border=(4, 4, 4, 4))

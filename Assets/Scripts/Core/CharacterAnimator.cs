@@ -19,6 +19,7 @@ namespace TopDown
             public Sprite[] idle = Array.Empty<Sprite>();
             public Sprite[] walk = Array.Empty<Sprite>();
             public Sprite[] action = Array.Empty<Sprite>();
+            public Sprite[] fly = Array.Empty<Sprite>();
         }
 
         [SerializeField] Rigidbody2D body;
@@ -27,8 +28,9 @@ namespace TopDown
         [SerializeField] float idleFps = 2f;
         [Tooltip("Walk frames per second at a speed of 1 unit/s; scales with actual speed so sprinting animates faster.")]
         [SerializeField] float walkFpsPerUnitSpeed = 2.6f;
-        [Tooltip("Action loop speed; 2 frames at 3.33 fps = one axe swing every 0.6 s (one OSRS tick).")]
-        [SerializeField] float actionFps = 3.333f;
+        [Tooltip("Action loop speed (spell casting: wind-up then release).")]
+        [SerializeField] float actionFps = 4.5f;
+        [SerializeField] float flyFps = 6f;
         [SerializeField] float airborneFps = 12f;
         [SerializeField] float movingThreshold = 0.15f;
 
@@ -53,15 +55,19 @@ namespace TopDown
             }
         }
 
-        /// <summary>Plays the walk cycle quickly regardless of velocity (used while leaping).</summary>
+        /// <summary>Plays the walk cycle quickly regardless of velocity (used while jumping).</summary>
         public bool Airborne { get; set; }
 
-        public void SetFrames(Direction direction, Sprite[] idleFrames, Sprite[] walkFrames, Sprite[] actionFrames = null)
+        /// <summary>Plays the "riding the wind" frames.</summary>
+        public bool Flying { get; set; }
+
+        public void SetFrames(Direction direction, Sprite[] idleFrames, Sprite[] walkFrames, Sprite[] actionFrames = null, Sprite[] flyFrames = null)
         {
             var set = Get(direction);
             set.idle = idleFrames;
             set.walk = walkFrames;
             set.action = actionFrames ?? Array.Empty<Sprite>();
+            set.fly = flyFrames ?? Array.Empty<Sprite>();
         }
 
         public static Direction DirectionOf(Vector2 v) =>
@@ -102,6 +108,11 @@ namespace TopDown
             {
                 frames = set.action;
                 fps = actionFps;
+            }
+            else if (Flying && set.fly.Length > 0)
+            {
+                frames = set.fly;
+                fps = flyFps;
             }
             else if (Airborne)
             {

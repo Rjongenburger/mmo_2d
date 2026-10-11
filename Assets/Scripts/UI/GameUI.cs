@@ -28,6 +28,8 @@ namespace TopDown
         public InteractPrompt Prompt { get; private set; }
         public ContextMenuUI Menu { get; private set; }
         public TooltipUI Tooltip { get; private set; }
+        public HeartsUI Hearts { get; private set; }
+        public BannerUI Banner { get; private set; }
 
         /// <summary>Mouse-over text set by UI elements (inventory items, skills), shown instead of world hover text.</summary>
         public string HoverOverride { get; set; }
@@ -45,8 +47,7 @@ namespace TopDown
         {
             if (Instance == this)
                 Instance = null;
-            if (boundPlayer != null)
-                boundPlayer.Interactor.WorldMenuRequested -= OpenWorldMenu;
+            Unbind();
         }
 
         void Build()
@@ -56,8 +57,6 @@ namespace TopDown
 
             Chat = root.gameObject.AddComponent<ChatBox>();
             Chat.Build(skin, root);
-            Dialogue = root.gameObject.AddComponent<DialogueBox>();
-            Dialogue.Build(skin, Chat);
             Side = root.gameObject.AddComponent<SidePanel>();
             Side.Build(skin, root);
             Objective = root.gameObject.AddComponent<ObjectivePanel>();
@@ -67,8 +66,14 @@ namespace TopDown
             Prompt = root.gameObject.AddComponent<InteractPrompt>();
             Prompt.Build(skin, root);
 
-            var hoverRect = UiFactory.Rect("HoverText", root, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(5f, -5f), new Vector2(300f, 12f));
+            Hearts = root.gameObject.AddComponent<HeartsUI>();
+            Hearts.Build(skin, root);
+            var hoverRect = UiFactory.Rect("HoverText", root, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(5f, -17f), new Vector2(300f, 12f));
             hoverText = UiFactory.Text(hoverRect, skin.font, "", skin.white, wrap: false);
+            Dialogue = root.gameObject.AddComponent<DialogueBox>();
+            Dialogue.Build(skin, root, Chat);
+            Banner = root.gameObject.AddComponent<BannerUI>();
+            Banner.Build(skin, root);
 
             // Overlays last so they draw on top.
             Menu = gameObject.AddComponent<ContextMenuUI>();
@@ -93,13 +98,34 @@ namespace TopDown
 
         void Bind(Player player)
         {
-            if (boundPlayer != null)
-                boundPlayer.Interactor.WorldMenuRequested -= OpenWorldMenu;
+            Unbind();
             boundPlayer = player;
             player.Interactor.WorldMenuRequested += OpenWorldMenu;
+            player.Skills.LevelledUp += OnLevelUp;
+            if (player.Caster != null)
+                player.Caster.SpellLearned += OnSpellLearned;
             Side.Bind(player);
             XpDrops.Bind(player);
+            Hearts.Bind(player.Health);
         }
+
+        void Unbind()
+        {
+            if (boundPlayer == null)
+                return;
+            boundPlayer.Interactor.WorldMenuRequested -= OpenWorldMenu;
+            boundPlayer.Skills.LevelledUp -= OnLevelUp;
+            if (boundPlayer.Caster != null)
+                boundPlayer.Caster.SpellLearned -= OnSpellLearned;
+        }
+
+        void OnLevelUp(Skill skill, int level)
+        {
+            Sfx.Play(skin.levelUp, 0.6f);
+            Banner.Show(skin.SkillIcon(skill), "Level up!", $"{skill} is now level {level}");
+        }
+
+        void OnSpellLearned(SpellDefinition spell) => Side.Flash(SidePanel.MagicTab);
 
         string ComposeHoverText(Player player)
         {

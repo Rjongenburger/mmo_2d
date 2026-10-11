@@ -85,6 +85,12 @@ namespace TopDown
             set { shadow = value; SetVerticesDirty(); }
         }
 
+        public Color ShadowColor
+        {
+            get => shadowColor;
+            set { shadowColor = value; SetVerticesDirty(); }
+        }
+
         /// <summary>Number of printable characters (excluding colour tags).</summary>
         public int CharacterCount
         {

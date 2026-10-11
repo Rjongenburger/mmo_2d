@@ -5,8 +5,8 @@ using UnityEngine;
 namespace TopDown
 {
     /// <summary>
-    /// The local player: ties movement, animation, inventory and skills together and runs
-    /// timed actions (chopping, lighting fires) that are cancelled when the player walks away.
+    /// The local player: ties movement, animation, inventory, equipment, skills, health and spells together,
+    /// runs timed actions that are cancelled when the player walks away, and handles respawning.
     /// </summary>
     [RequireComponent(typeof(PlayerController), typeof(Inventory), typeof(Skills))]
     public class Player : MonoBehaviour
@@ -18,35 +18,54 @@ namespace TopDown
         [SerializeField] Transform body;
         [SerializeField] SpriteRenderer shadow;
         [SerializeField] GroundItem groundItemPrefab;
-        [SerializeField] Campfire campfirePrefab;
-        [SerializeField] LayerMask fireBlockers = ~0;
-        [SerializeField] AudioClip igniteClip;
+        [SerializeField] AudioClip respawnClip;
 
         Coroutine action;
         Action onActionCancelled;
 
         public PlayerController Controller { get; private set; }
         public Inventory Inventory { get; private set; }
+        public Equipment Equipment { get; private set; }
         public Skills Skills { get; private set; }
+        public PlayerHealth Health { get; private set; }
+        public PlayerAirborne Airborne { get; private set; }
+        public SpellCaster Caster { get; private set; }
         public PlayerInteractor Interactor { get; private set; }
         public CharacterAnimator Animator => animator;
         public Transform Body => body;
         public SpriteRenderer Shadow => shadow;
         public bool IsBusy => action != null;
 
-        public event Action<Campfire> FireLit;
+        /// <summary>Where the player wakes up after running out of hearts.</summary>
+        public Vector2 Checkpoint { get; set; }
 
         void Awake()
         {
             Instance = this;
             Controller = GetComponent<PlayerController>();
             Inventory = GetComponent<Inventory>();
+            Equipment = GetComponent<Equipment>();
             Skills = GetComponent<Skills>();
+            Health = GetComponent<PlayerHealth>();
+            Airborne = GetComponent<PlayerAirborne>();
+            Caster = GetComponent<SpellCaster>();
             Interactor = GetComponent<PlayerInteractor>();
+            Checkpoint = transform.position;
         }
 
-        void OnEnable() => Controller.ManualMove += CancelAction;
-        void OnDisable() => Controller.ManualMove -= CancelAction;
+        void OnEnable()
+        {
+            Controller.ManualMove += CancelAction;
+            if (Health != null)
+                Health.Died += OnDied;
+        }
+
+        void OnDisable()
+        {
+            Controller.ManualMove -= CancelAction;
+            if (Health != null)
+                Health.Died -= OnDied;
+        }
 
         void OnDestroy()
         {
@@ -80,22 +99,18 @@ namespace TopDown
             onActionCancelled = null;
         }
 
-        // ------------------------------------------------------------ inventory actions
+        // ------------------------------------------------------------ inventory / equipment
 
+        /// <summary>Left-click on an inventory item: wear it if possible, otherwise examine it.</summary>
         public void UseItem(int slot)
         {
             var stack = Inventory[slot];
             if (stack.IsEmpty)
                 return;
-            switch (stack.item.PrimaryAction)
-            {
-                case ItemAction.Light:
-                    TryLightFire(slot);
-                    break;
-                default:
-                    ExamineItem(slot);
-                    break;
-            }
+            if (stack.item.IsWearable && Equipment != null)
+                Equipment.Wear(slot);
+            else
+                ExamineItem(slot);
         }
 
         public void ExamineItem(int slot)
@@ -108,7 +123,7 @@ namespace TopDown
         public void DropItem(int slot)
         {
             var stack = Inventory[slot];
-            if (stack.IsEmpty || groundItemPrefab == null || Controller.IsLocked)
+            if (stack.IsEmpty || groundItemPrefab == null || Controller.IsLocked || (Airborne != null && Airborne.Airborne))
                 return;
             CancelAction();
             var dropped = Instantiate(groundItemPrefab, transform.position + new Vector3(0f, -0.05f, 0f), Quaternion.identity);
@@ -116,51 +131,31 @@ namespace TopDown
             Inventory.RemoveAt(slot, stack.amount);
         }
 
-        void TryLightFire(int slot)
-        {
-            if (Controller.IsLocked || campfirePrefab == null)
-                return;
-            if (!FindFireSpot(out Vector2 spot))
-            {
-                GameLog.Add("You can't light a fire here.");
-                return;
-            }
-            StartAction(LightFire(slot, spot), () => Controller.Unlock());
-        }
+        // ------------------------------------------------------------ death
 
-        IEnumerator LightFire(int slot, Vector2 spot)
+        void OnDied() => StartCoroutine(DeathRoutine());
+
+        IEnumerator DeathRoutine()
         {
-            var logs = Inventory[slot].item;
-            GameLog.Add("You attempt to light the logs.");
-            Controller.FaceTowards(spot);
+            CancelAction();
             Controller.Lock();
-            yield return new WaitForSeconds(1.2f);
+            GameLog.Add("<#a01818>Everything goes dark...</>");
+            var fader = ScreenFader.Instance;
+            yield return new WaitForSeconds(0.4f);
+            if (fader != null)
+                yield return fader.Fade(Color.black, fader.Alpha, 1f, 0.6f);
+
+            if (Airborne != null)
+                Airborne.ResetTo(Checkpoint);
+            else
+                transform.position = Checkpoint;
+            Health.HealFull();
+            yield return new WaitForSeconds(0.4f);
+            Sfx.Play(respawnClip, 0.7f);
+            GameLog.Add("Aldric's magic pulls you back to the stone circle.");
+            if (fader != null)
+                yield return fader.Fade(Color.black, 1f, 0f, 0.6f);
             Controller.Unlock();
-
-            int index = Inventory[slot].item == logs ? slot : Inventory.IndexOf(logs);
-            if (index < 0)
-                yield break;
-            Inventory.RemoveAt(index);
-            var fire = Instantiate(campfirePrefab, spot, Quaternion.identity);
-            Sfx.Play(igniteClip, 0.8f);
-            GameLog.Add("The fire catches and the logs begin to burn.");
-            FireLit?.Invoke(fire);
-        }
-
-        bool FindFireSpot(out Vector2 spot)
-        {
-            Vector2 feet = transform.position;
-            Vector2 facing = Controller.Facing.sqrMagnitude > 0.01f ? Controller.Facing.normalized : Vector2.down;
-            Vector2[] candidates = { facing, Vector2.left, Vector2.right, Vector2.down, Vector2.up };
-            foreach (var dir in candidates)
-            {
-                spot = feet + dir * 0.85f;
-                var hit = Physics2D.OverlapCircle(spot, 0.3f, fireBlockers);
-                if (hit == null || hit.isTrigger)
-                    return true;
-            }
-            spot = default;
-            return false;
         }
     }
 }

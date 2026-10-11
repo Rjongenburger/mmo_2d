@@ -39,6 +39,9 @@ namespace TopDown
         /// <summary>Extra velocity applied while the player is free to move (e.g. wind gusts).</summary>
         public Vector2 ExternalVelocity { get; set; }
 
+        /// <summary>Scales walking speed (e.g. faster while riding the wind).</summary>
+        public float SpeedMultiplier { get; set; } = 1f;
+
         public bool IsLocked => lockCount > 0;
         public bool IsWalkingToTarget => walkTarget.HasValue;
 
@@ -152,7 +155,7 @@ namespace TopDown
             }
 
             bool sprinting = sprintAction != null && sprintAction.IsPressed();
-            MoveVelocity = moveInput * (moveSpeed * (sprinting ? sprintMultiplier : 1f));
+            MoveVelocity = moveInput * (moveSpeed * SpeedMultiplier * (sprinting ? sprintMultiplier : 1f));
             // External pushes (wind) only act while walking, so a standing player braces instead of sliding.
             bool walking = moveInput.sqrMagnitude > 0.01f;
             Vector2 target = MoveVelocity + (walking && !IsLocked ? ExternalVelocity : Vector2.zero);

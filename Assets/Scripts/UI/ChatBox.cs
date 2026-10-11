@@ -40,6 +40,14 @@ namespace TopDown
                 messages.Text = string.Join("\n", history);
         }
 
-        public void ShowMessages(bool show) => messages.enabled = show;
+        /// <summary>Hides the whole chatbox (e.g. while a dialogue panel is up).</summary>
+        public void SetVisible(bool visible)
+        {
+            var group = Panel.GetComponent<CanvasGroup>();
+            if (group == null)
+                group = Panel.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = visible ? 1f : 0f;
+            group.blocksRaycasts = visible;
+        }
     }
 }

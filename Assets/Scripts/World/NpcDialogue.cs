@@ -20,6 +20,10 @@ namespace TopDown
     public class NpcDialogue : Interactable
     {
         [SerializeField] Sprite portrait;
+        [Tooltip("Colour of the name plate when this character speaks.")]
+        [SerializeField] Color plateColor = new(0.48f, 0.36f, 1f);
+        [Tooltip("Pitch of the typewriter voice blips (lower = deeper).")]
+        [SerializeField] float voicePitch = 0.8f;
         [SerializeField] DialogueLine[] introduction = Array.Empty<DialogueLine>();
         [SerializeField] DialogueLine[] reminder = Array.Empty<DialogueLine>();
 
@@ -54,7 +58,7 @@ namespace TopDown
                     return;
                 HasIntroduced = true;
                 IntroductionFinished?.Invoke();
-            });
+            }, plateColor, voicePitch);
         }
     }
 }

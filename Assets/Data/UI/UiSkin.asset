@@ -29,8 +29,39 @@ MonoBehaviour:
   skillTile: {fileID: 21300000, guid: 09b045beae1774151ad45d1901d70fca, type: 3}
   playerPortrait: {fileID: 21300000, guid: ef2bdb6e672ee4f41a1d72ed24f3409e, type: 3}
   skillIcons:
-  - {fileID: 21300000, guid: af449a3ac671641c5bed8888904806eb, type: 3}
+  - {fileID: 21300000, guid: f7bc77bdca0ef4535a2d307036a2611a, type: 3}
   click: {fileID: 8300000, guid: 62832591e57c845b396e29aea5ef3be7, type: 3}
+  dialoguePanel: {fileID: 21300000, guid: 59b63d0fc650846a38d989cea065276d, type: 3}
+  namePlate: {fileID: 21300000, guid: d29279e50b4da455694bb0c3b1e27838, type: 3}
+  portraitRing: {fileID: 21300000, guid: 1f5e7300d48ea499dbb7aae1d0655136, type: 3}
+  portraitBackdrop: {fileID: 21300000, guid: 55f087418fc3d414f98e629b8de378c5, type: 3}
+  continueArrow: {fileID: 21300000, guid: bb2cb9d67495f4ffe9676752a697cdbe, type: 3}
+  dialogueBlip: {fileID: 8300000, guid: ca68962d986094a1a86316731e8ae5b1, type: 3}
+  dialogueText: {r: 0.957, g: 0.937, b: 0.902, a: 1}
+  playerPlateColor: {r: 0.17, g: 0.62, b: 0.58, a: 1}
+  playerVoicePitch: 1.25
+  iconEquipment: {fileID: 21300000, guid: 930aab50a2f6543938c599b6ff77cdf7, type: 3}
+  iconSpellbook: {fileID: 21300000, guid: 299a417beb16e4e328443e43757af059, type: 3}
+  equipSlot: {fileID: 21300000, guid: 0eede00eb779646b9ba30419e2954246, type: 3}
+  slotSilhouettes:
+  - {fileID: 0}
+  - {fileID: 21300000, guid: ad9d96f46b7a5418ead4c2d0f983398f, type: 3}
+  - {fileID: 21300000, guid: e2698c62e753a4e85a4eb53465598fb0, type: 3}
+  - {fileID: 21300000, guid: 26f2d8a60fbb041629a67b91c1e9086c, type: 3}
+  - {fileID: 21300000, guid: 270984990505e4180b0120a55ee7a6b2, type: 3}
+  - {fileID: 21300000, guid: 5ca8a22e6495b4afc97daca378aff2be, type: 3}
+  - {fileID: 21300000, guid: 7dc8a3068c12843a2b5d729743431616, type: 3}
+  - {fileID: 21300000, guid: df05155d928804014b6e08ad108d177d, type: 3}
+  - {fileID: 21300000, guid: 990c72c08aba549839f838a870c77fb5, type: 3}
+  - {fileID: 21300000, guid: 4b5275464b22641229c88c465a1be21e, type: 3}
+  - {fileID: 21300000, guid: d9ba18e0197d748cd871458fb1ee7431, type: 3}
+  - {fileID: 21300000, guid: 061f36257c99543e088074d6323dbb2d, type: 3}
+  spellFrame: {fileID: 21300000, guid: b3309c0ffb2f54601a9c55aa49eddcfc, type: 3}
+  spellFrameActive: {fileID: 21300000, guid: bf894349034654260b664a0f3b5d3095, type: 3}
+  heartFull: {fileID: 1738393598, guid: 1117aeb0e0ca040cd990ce5129f16049, type: 3}
+  heartHalf: {fileID: 1683764644, guid: 1117aeb0e0ca040cd990ce5129f16049, type: 3}
+  heartEmpty: {fileID: -1559094324, guid: 1117aeb0e0ca040cd990ce5129f16049, type: 3}
+  levelUp: {fileID: 8300000, guid: a1eae325dc22d483daf46647bbe5425f, type: 3}
   white: {r: 1, g: 1, b: 1, a: 1}
   yellow: {r: 1, g: 1, b: 0, a: 1}
   orange: {r: 1, g: 0.565, b: 0.251, a: 1}

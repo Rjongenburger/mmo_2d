@@ -15,5 +15,5 @@ MonoBehaviour:
   displayName: Gale feather
   icon: {fileID: 21300000, guid: e604f5a98940a4a83b2c6553a07709cf, type: 3}
   stackable: 0
-  examine: A feather that hums with the mountain wind.
-  primaryAction: 0
+  examine: A feather that hums with the mountain wind. Jump, then call on it to fly.
+  equipSlot: 0

@@ -4,80 +4,97 @@ using UnityEngine;
 namespace TopDown
 {
     /// <summary>
-    /// Drives the opening on the mountain: talk to the mage → take the gale feather → leap across →
-    /// take the axe → chop the tree → light a fire. Updates the objective panel and the hint arrow.
+    /// Drives the opening on the mountain: talk to the mage → learn Fire Bolt and take the gale feather →
+    /// fly to the next peak → defeat the wind crows. Updates the objective panel and the hint arrow.
     /// </summary>
     public class TutorialGuide : MonoBehaviour
     {
-        public enum Step { Arrive, TalkToMage, TakeFeather, LeapAcross, TakeAxe, ChopTree, LightFire, Done }
+        public enum Step { Arrive, TalkToMage, TakeFeather, FlyAcross, DefeatCrows, Done }
 
         [SerializeField] NpcDialogue mage;
         [SerializeField] SpriteFlipbook mageAnimation;
         [SerializeField] Sprite[] mageIdleFrames;
         [SerializeField] Sprite[] mageCastFrames;
+        [SerializeField] SpellDefinition firstSpell;
         [SerializeField] GroundItem feather;
-        [SerializeField] LeapPoint leapOut;
-        [SerializeField] LeapPoint leapBack;
-        [SerializeField] GroundItem axe;
-        [SerializeField] ChoppableTree tree;
+        [SerializeField] Transform secondPeak;
+        [SerializeField] float secondPeakMinX = 16.5f;
+        [SerializeField] int crowsToDefeat = 4;
         [SerializeField] HintArrow arrow;
         [SerializeField] Sprite[] sparkleFrames;
         [SerializeField] AudioClip conjureClip;
+        [SerializeField] AudioClip spellLearnedClip;
+
+        int crowsDefeated;
 
         public Step Current { get; private set; } = Step.Arrive;
+        public int CrowsDefeated => crowsDefeated;
 
         void OnEnable()
         {
             GroundItem.PickedUp += OnPickedUp;
-            LeapPoint.AnyLeap += OnLeap;
+            Enemy.Killed += OnEnemyKilled;
             if (mage != null)
                 mage.IntroductionFinished += OnMageFinished;
-            if (tree != null)
-                tree.LogsChopped += OnLogsChopped;
         }
 
         void OnDisable()
         {
             GroundItem.PickedUp -= OnPickedUp;
-            LeapPoint.AnyLeap -= OnLeap;
+            Enemy.Killed -= OnEnemyKilled;
             if (mage != null)
                 mage.IntroductionFinished -= OnMageFinished;
-            if (tree != null)
-                tree.LogsChopped -= OnLogsChopped;
-            if (Player.Instance != null)
-                Player.Instance.FireLit -= OnFireLit;
         }
 
         void Start()
         {
             if (feather != null)
                 feather.gameObject.SetActive(false);
-            if (Player.Instance != null)
-                Player.Instance.FireLit += OnFireLit;
         }
 
         public void Begin() => SetStep(Step.TalkToMage);
 
-        void OnMageFinished() => StartCoroutine(ConjureFeather());
+        void Update()
+        {
+            // Landing anywhere on the second peak completes the crossing.
+            var player = Player.Instance;
+            if (Current == Step.FlyAcross && player != null && player.transform.position.x > secondPeakMinX &&
+                !player.Airborne.Airborne && !player.Airborne.Falling)
+                SetStep(Step.DefeatCrows);
+        }
 
-        IEnumerator ConjureFeather()
+        void OnMageFinished() => StartCoroutine(GiveGifts());
+
+        IEnumerator GiveGifts()
         {
             if (mageAnimation != null && mageCastFrames.Length > 0)
                 mageAnimation.SetFrames(mageCastFrames, 4f);
-            yield return new WaitForSeconds(0.5f);
-            Sfx.Play(conjureClip, 0.5f);
+            yield return new WaitForSeconds(0.4f);
+
+            // The first spell.
+            var player = Player.Instance;
+            player.Caster.Learn(firstSpell);
+            Sfx.Play(spellLearnedClip, 0.7f);
+            Fx.PlayOnce(sparkleFrames, (Vector2)player.transform.position + new Vector2(0f, 1.2f), 10f);
+            if (GameUI.Instance != null)
+                GameUI.Instance.Banner.Show(firstSpell.Icon, "New spell learned!", firstSpell.DisplayName);
+            GameLog.Add($"You learned <#ff8a2a>{firstSpell.DisplayName}</>! Click a target or press F to cast it.");
+            yield return new WaitForSeconds(1.2f);
+
+            // The gale feather.
+            Sfx.Play(conjureClip, 0.45f);
             if (feather != null)
             {
                 Fx.PlayOnce(sparkleFrames, (Vector2)feather.transform.position + new Vector2(0f, 0.3f), 10f);
-                Fx.Burst(sparkleFrames.Length > 0 ? sparkleFrames[1] : null, feather.transform.position, 8, new Vector2(0f, 0.6f), 1.2f, 0.7f);
                 feather.gameObject.SetActive(true);
             }
             GameLog.Add("Aldric conjures a shimmering feather out of the wind.");
             mage.SetReminder(
-                new DialogueLine(false, "Take the gale feather, then stand on the rune slab at the eastern edge."),
-                new DialogueLine(false, "The wind will do the rest. Trust it."));
+                new DialogueLine(false, "Take the gale feather and run to the edge. Jump with <#ffe08a>Space</>, then press <#ffe08a>Space</> again while in the air."),
+                new DialogueLine(false, "The wind will carry you. Steer it like you'd steer your own feet."));
             SetStep(Step.TakeFeather);
-            yield return new WaitForSeconds(1f);
+
+            yield return new WaitForSeconds(0.8f);
             if (mageAnimation != null && mageIdleFrames.Length > 0)
                 mageAnimation.SetFrames(mageIdleFrames, 5f);
         }
@@ -85,36 +102,28 @@ namespace TopDown
         void OnPickedUp(GroundItem item)
         {
             if (item == feather && Current <= Step.TakeFeather)
-                SetStep(Step.LeapAcross);
-            else if (item == axe && Current <= Step.TakeAxe)
-                SetStep(Step.ChopTree);
+                SetStep(Step.FlyAcross);
         }
 
-        void OnLeap(LeapPoint from, LeapPoint to)
+        void OnEnemyKilled(Enemy enemy)
         {
-            if (from == leapOut && Current == Step.LeapAcross)
-                SetStep(axe != null ? Step.TakeAxe : Step.ChopTree);
-        }
-
-        void OnLogsChopped(Player player)
-        {
-            if (Current < Step.LightFire)
-                SetStep(Step.LightFire);
-        }
-
-        void OnFireLit(Campfire fire)
-        {
-            if (Current == Step.Done)
+            if (Current != Step.DefeatCrows && Current != Step.FlyAcross)
                 return;
-            SetStep(Step.Done);
-            StartCoroutine(Epilogue());
+            crowsDefeated++;
+            if (crowsDefeated >= crowsToDefeat)
+            {
+                SetStep(Step.Done);
+                StartCoroutine(Epilogue());
+            }
+            else
+                SetStep(Step.DefeatCrows);
         }
 
         IEnumerator Epilogue()
         {
-            yield return new WaitForSeconds(2.5f);
+            yield return new WaitForSeconds(2f);
             GameLog.Add("<#7a1a1a>Aldric's voice drifts across on the wind:</>");
-            GameLog.Add("<#7a1a1a>\"Well done. Rest by the fire, hero... at dawn, we descend.\"</>");
+            GameLog.Add("<#7a1a1a>\"Well cast! You are a quick study, hero... at dawn, we descend.\"</>");
         }
 
         void SetStep(Step step)
@@ -130,24 +139,16 @@ namespace TopDown
                     SetObjective("The gale feather", "Take the <#ff9040>Gale feather</> Aldric conjured.");
                     Point(feather);
                     break;
-                case Step.LeapAcross:
-                    SetObjective("Cross the gap", "Stand on the glowing rune slab at the eastern edge and leap to the next peak.");
-                    Point(leapOut);
+                case Step.FlyAcross:
+                    SetObjective("Ride the wind", "Run to the eastern edge. Press <#ffe08a>Space</> to jump, then <#ffe08a>Space</> again in mid-air to fly to the next peak.");
+                    Point(secondPeak);
                     break;
-                case Step.TakeAxe:
-                    SetObjective("An old axe", "Take the <#ff9040>Bronze axe</> from the chopping block.");
-                    Point(axe);
-                    break;
-                case Step.ChopTree:
-                    SetObjective("Woodcutting", "Chop down the pine <#00ffff>Tree</>.");
-                    Point(tree);
-                    break;
-                case Step.LightFire:
-                    SetObjective("Keep warm", "Night is falling. Click the <#ff9040>Logs</> in your inventory to light a fire.");
+                case Step.DefeatCrows:
+                    SetObjective("Wind crows", $"Defeat the crows with <#ff8a2a>Fire Bolt</>: click a crow or press <#ffe08a>F</>. ({crowsDefeated}/{crowsToDefeat})");
                     Point(null);
                     break;
                 case Step.Done:
-                    SetObjective("Tutorial complete", "You survived your first night on the peaks. To be continued...");
+                    SetObjective("Tutorial complete", "The peak is quiet again. You've mastered your first spell. To be continued...");
                     Point(null);
                     break;
             }

@@ -26,9 +26,10 @@ namespace TopDown
             var player = Player.Instance;
             var ui = GameUI.Instance;
 
+            player.Checkpoint = landingPoint.position;
             if (SkipForTests)
             {
-                player.transform.position = landingPoint.position;
+                player.Airborne.ResetTo(landingPoint.position);
                 portal.SetOpen(false);
                 if (ui != null) ui.SetHudVisible(true);
                 guide.Begin();
@@ -43,8 +44,7 @@ namespace TopDown
             player.Body.gameObject.SetActive(false);
             player.Shadow.enabled = false;
             Vector2 portalCenter = portal.transform.position;
-            var rb = player.GetComponent<Rigidbody2D>();
-            rb.position = landingPoint.position;
+            player.Airborne.ResetTo(landingPoint.position);
 
             if (ScreenFader.Instance != null)
             {

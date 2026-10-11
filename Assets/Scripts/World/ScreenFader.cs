@@ -24,6 +24,9 @@ namespace TopDown
                 Instance = null;
         }
 
+        /// <summary>Current opacity of the fade overlay.</summary>
+        public float Alpha => image.color.a;
+
         public void Set(Color color, float alpha)
         {
             color.a = alpha;

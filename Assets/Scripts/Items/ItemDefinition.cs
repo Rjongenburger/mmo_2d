@@ -2,7 +2,8 @@ using UnityEngine;
 
 namespace TopDown
 {
-    public enum ItemAction { None, Light }
+    /// <summary>Where a wearable item goes, laid out like the OSRS worn-equipment screen.</summary>
+    public enum EquipSlot { None, Head, Cape, Neck, Ammo, Weapon, Body, Shield, Legs, Hands, Feet, Ring }
 
     [CreateAssetMenu(menuName = "TopDown/Item", fileName = "Item")]
     public class ItemDefinition : ScriptableObject
@@ -11,29 +12,31 @@ namespace TopDown
         [SerializeField] Sprite icon;
         [SerializeField] bool stackable;
         [SerializeField, TextArea] string examine = "";
-        [Tooltip("What left-clicking the item in the inventory does.")]
-        [SerializeField] ItemAction primaryAction = ItemAction.None;
+        [Tooltip("Slot this item is worn in; None for items you can only carry.")]
+        [SerializeField] EquipSlot equipSlot = EquipSlot.None;
 
         public string DisplayName => displayName;
         public Sprite Icon => icon;
         public bool Stackable => stackable;
         public string Examine => examine;
-        public ItemAction PrimaryAction => primaryAction;
+        public EquipSlot EquipSlot => equipSlot;
+        public bool IsWearable => equipSlot != EquipSlot.None;
 
-        /// <summary>OSRS-style verb shown in menus, or null when the item has no primary action.</summary>
-        public string PrimaryVerb => primaryAction switch
+        /// <summary>Verb for the item's default (left-click) action, or null if it has none.</summary>
+        public string PrimaryVerb => equipSlot switch
         {
-            ItemAction.Light => "Light",
-            _ => null,
+            EquipSlot.None => null,
+            EquipSlot.Weapon or EquipSlot.Shield => "Wield",
+            _ => "Wear",
         };
 
-        public void Setup(string name, Sprite itemIcon, bool isStackable, string examineText, ItemAction action)
+        public void Setup(string name, Sprite itemIcon, bool isStackable, string examineText, EquipSlot slot = EquipSlot.None)
         {
             displayName = name;
             icon = itemIcon;
             stackable = isStackable;
             examine = examineText;
-            primaryAction = action;
+            equipSlot = slot;
         }
     }
 }

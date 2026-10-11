@@ -25,6 +25,30 @@ namespace TopDown
         public Sprite[] skillIcons;
         public AudioClip click;
 
+        [Header("Dialogue")]
+        public Sprite dialoguePanel;
+        public Sprite namePlate;
+        public Sprite portraitRing;
+        public Sprite portraitBackdrop;
+        public Sprite continueArrow;
+        public AudioClip dialogueBlip;
+        public Color dialogueText = new(0.957f, 0.937f, 0.902f);
+        public Color playerPlateColor = new(0.17f, 0.62f, 0.58f);
+        public float playerVoicePitch = 1.25f;
+
+        [Header("Tabs, hearts and banners")]
+        public Sprite iconEquipment;
+        public Sprite iconSpellbook;
+        public Sprite equipSlot;
+        [Tooltip("Faded slot outlines indexed by EquipSlot (index 0 / None unused).")]
+        public Sprite[] slotSilhouettes;
+        public Sprite spellFrame;
+        public Sprite spellFrameActive;
+        public Sprite heartFull;
+        public Sprite heartHalf;
+        public Sprite heartEmpty;
+        public AudioClip levelUp;
+
         [Header("OSRS text colours")]
         public Color white = Color.white;
         public Color yellow = new(1f, 1f, 0f);
@@ -35,6 +59,9 @@ namespace TopDown
         public Color npcName = new(0.5f, 0f, 0f);
         public Color continueText = new(0f, 0f, 1f);
         public Color menuHeaderText = Color.black;
+
+        public Sprite SlotSilhouette(EquipSlot slot) =>
+            slotSilhouettes != null && (int)slot < slotSilhouettes.Length ? slotSilhouettes[(int)slot] : null;
 
         public Sprite SkillIcon(Skill skill) =>
             skillIcons != null && (int)skill < skillIcons.Length ? skillIcons[(int)skill] : null;

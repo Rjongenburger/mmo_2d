@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace TopDown
 {
-    public enum Skill { Woodcutting }
+    public enum Skill { Magic }
 
     /// <summary>Per-player skill experience, using the OSRS experience curve.</summary>
     public class Skills : MonoBehaviour
