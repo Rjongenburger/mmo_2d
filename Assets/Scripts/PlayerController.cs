@@ -10,7 +10,7 @@ namespace TopDown
     [RequireComponent(typeof(Rigidbody2D))]
     public class PlayerController : MonoBehaviour
     {
-        [SerializeField] float moveSpeed = 5f;
+        [SerializeField] float moveSpeed = 4f;
         [SerializeField] float sprintMultiplier = 1.6f;
         [Tooltip("How quickly velocity reaches the target speed (units/s²). Higher = snappier.")]
         [SerializeField] float acceleration = 60f;
