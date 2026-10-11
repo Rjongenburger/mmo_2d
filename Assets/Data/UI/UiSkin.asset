@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 411ff30af70184596a550d0da7fd2962, type: 3}
+  m_Name: UiSkin
+  m_EditorClassIdentifier: TopDown::TopDown.UiSkin
+  font: {fileID: 11400000, guid: 0a525c107c4c44dfb9ae3bf4f8bc9246, type: 2}
+  stonePanel: {fileID: 21300000, guid: 543d58da3994d4e54906bb5ca8b725d4, type: 3}
+  parchmentPanel: {fileID: 21300000, guid: d20efdd8f2624437ab86b866c550322f, type: 3}
+  menuPanel: {fileID: 21300000, guid: 3e04578312cef4aee949c129871af6ce, type: 3}
+  menuHeader: {fileID: 21300000, guid: e46538e4ed57f45a89c11a30ccac1c83, type: 3}
+  tooltipPanel: {fileID: 21300000, guid: a4b33301af18d43a3b07f60acd1f4007, type: 3}
+  darkPanel: {fileID: 21300000, guid: ae912bdab900843b0b6efa973eb64542, type: 3}
+  slotHover: {fileID: 21300000, guid: db24c136d7faf496d9235db1f61115cb, type: 3}
+  tabNormal: {fileID: 21300000, guid: b927657b25e754545bb612164e52ac94, type: 3}
+  tabActive: {fileID: 21300000, guid: 61b06a3bb6b6741a391666af0167cd1c, type: 3}
+  iconInventory: {fileID: 21300000, guid: cc97b94301f0d437989dcca827bfafaf, type: 3}
+  iconSkills: {fileID: 21300000, guid: 06334c4d965424eb1a5ab2269d72f2e4, type: 3}
+  keycap: {fileID: 21300000, guid: d180f7d95eb86440cb8939ae241bed91, type: 3}
+  portraitFrame: {fileID: 21300000, guid: d93de36f0107149eab6bfea880a6e2a0, type: 3}
+  skillTile: {fileID: 21300000, guid: 09b045beae1774151ad45d1901d70fca, type: 3}
+  playerPortrait: {fileID: 21300000, guid: ef2bdb6e672ee4f41a1d72ed24f3409e, type: 3}
+  skillIcons:
+  - {fileID: 21300000, guid: af449a3ac671641c5bed8888904806eb, type: 3}
+  click: {fileID: 8300000, guid: 62832591e57c845b396e29aea5ef3be7, type: 3}
+  white: {r: 1, g: 1, b: 1, a: 1}
+  yellow: {r: 1, g: 1, b: 0, a: 1}
+  orange: {r: 1, g: 0.565, b: 0.251, a: 1}
+  cyan: {r: 0, g: 1, b: 1, a: 1}
+  objectiveTitle: {r: 1, g: 0.596, b: 0.122, a: 1}
+  chatText: {r: 0, g: 0, b: 0, a: 1}
+  npcName: {r: 0.5, g: 0, b: 0, a: 1}
+  continueText: {r: 0, g: 0, b: 1, a: 1}
+  menuHeaderText: {r: 0, g: 0, b: 0, a: 1}
