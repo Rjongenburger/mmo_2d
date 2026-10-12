@@ -9,7 +9,6 @@ ST_DARK, ST, ST_MID, ST_HI = rgb("#2b241c"), rgb("#3e352a"), rgb("#4d4334"), rgb
 PARCH, PARCH_HI, PARCH_SH, PARCH_EDGE = rgb("#d6c49c"), rgb("#e6d7b4"), rgb("#bba878"), rgb("#6b5634")
 RIVET, RIVET_HI = rgb("#8a6a3a"), rgb("#d9b46a")
 OUT = rgb("#2b2433")
-BAYER4 = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 
 
 def _bevel_frame(size, border, fill_fn, edge_dark, edge_hi, edge_lo):

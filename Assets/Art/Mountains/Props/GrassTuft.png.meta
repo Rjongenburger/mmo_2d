@@ -49,10 +49,10 @@ TextureImporter:
   cubemapConvolution: 0
   seamlessCubemap: 0
   textureFormat: 1
-  maxTextureSize: 2048
+  maxTextureSize: 4096
   textureSettings:
     serializedVersion: 2
-    filterMode: 0
+    filterMode: 1
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -66,7 +66,7 @@ TextureImporter:
   spriteMeshType: 0
   alignment: 9
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 32
+  spritePixelsToUnits: 128
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -89,7 +89,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 4096
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 0
@@ -102,7 +102,7 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 4
     buildTarget: Standalone
-    maxTextureSize: 2048
+    maxTextureSize: 4096
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 1
@@ -115,7 +115,7 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 4
     buildTarget: WebGL
-    maxTextureSize: 2048
+    maxTextureSize: 4096
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 1
@@ -133,10 +133,10 @@ TextureImporter:
       name: GrassTuft_0_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 24
-        width: 12
-        height: 12
+        x: 2
+        y: 106
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -155,10 +155,10 @@ TextureImporter:
       name: GrassTuft_0_1
       rect:
         serializedVersion: 2
-        x: 12
-        y: 24
-        width: 12
-        height: 12
+        x: 54
+        y: 106
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -177,10 +177,10 @@ TextureImporter:
       name: GrassTuft_0_2
       rect:
         serializedVersion: 2
-        x: 24
-        y: 24
-        width: 12
-        height: 12
+        x: 106
+        y: 106
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -199,10 +199,10 @@ TextureImporter:
       name: GrassTuft_0_3
       rect:
         serializedVersion: 2
-        x: 36
-        y: 24
-        width: 12
-        height: 12
+        x: 158
+        y: 106
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -221,10 +221,10 @@ TextureImporter:
       name: GrassTuft_1_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 12
-        width: 12
-        height: 12
+        x: 2
+        y: 54
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -243,10 +243,10 @@ TextureImporter:
       name: GrassTuft_1_1
       rect:
         serializedVersion: 2
-        x: 12
-        y: 12
-        width: 12
-        height: 12
+        x: 54
+        y: 54
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -265,10 +265,10 @@ TextureImporter:
       name: GrassTuft_1_2
       rect:
         serializedVersion: 2
-        x: 24
-        y: 12
-        width: 12
-        height: 12
+        x: 106
+        y: 54
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -287,10 +287,10 @@ TextureImporter:
       name: GrassTuft_1_3
       rect:
         serializedVersion: 2
-        x: 36
-        y: 12
-        width: 12
-        height: 12
+        x: 158
+        y: 54
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -309,10 +309,10 @@ TextureImporter:
       name: GrassTuft_2_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 12
-        height: 12
+        x: 2
+        y: 2
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -331,10 +331,10 @@ TextureImporter:
       name: GrassTuft_2_1
       rect:
         serializedVersion: 2
-        x: 12
-        y: 0
-        width: 12
-        height: 12
+        x: 54
+        y: 2
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -353,10 +353,10 @@ TextureImporter:
       name: GrassTuft_2_2
       rect:
         serializedVersion: 2
-        x: 24
-        y: 0
-        width: 12
-        height: 12
+        x: 106
+        y: 2
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -375,10 +375,10 @@ TextureImporter:
       name: GrassTuft_2_3
       rect:
         serializedVersion: 2
-        x: 36
-        y: 0
-        width: 12
-        height: 12
+        x: 158
+        y: 2
+        width: 48
+        height: 48
       alignment: 9
       pivot: {x: 0.5, y: 0.083333336}
       border: {x: 0, y: 0, z: 0, w: 0}

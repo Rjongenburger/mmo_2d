@@ -1,10 +1,9 @@
 """Small animated effects shared by the scenes."""
 import math
 
-from pixel import Canvas, rgb, with_alpha
+from pixel import Canvas, ramp, rgb, with_alpha
 
 OUT = rgb("#2b2433")
-BAYER4 = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 PORTAL_COLS = [rgb("#24123f"), rgb("#43207a"), rgb("#6a3dbf"), rgb("#9a74f2"), rgb("#c9b6ff"), rgb("#f2ecff"), rgb("#ffffff")]
 PORTAL_FRAMES = 8
 
@@ -24,12 +23,9 @@ def portal(frame):
             a = math.atan2(dy, dx)
             swirl = math.sin(3 * a + 10 * r - phase)
             v = (1 - r) * 0.85 + swirl * 0.22 + (0.35 if r > 0.9 else 0)
-            v += (BAYER4[y % 4][x % 4] / 16 - 0.5) * 0.12
-            idx = max(0, min(len(PORTAL_COLS) - 1, int(v * (len(PORTAL_COLS) - 0.5) + 0.6)))
-            if r < 0.16:
-                idx = len(PORTAL_COLS) - 1
+            t = len(PORTAL_COLS) - 1 if r < 0.16 else v * (len(PORTAL_COLS) - 0.5) + 0.1
             alpha = 255 if r < 0.93 else 200
-            c.replace(x, y, with_alpha(PORTAL_COLS[idx], alpha))
+            c.replace(x, y, with_alpha(ramp(PORTAL_COLS, t), alpha))
     for i in range(6):  # orbiting sparks on the rim
         a = phase * 1.5 + i * math.tau / 6
         x, y = round(cx + math.cos(a) * (rx + 1.5)), round(cy + math.sin(a) * (ry + 1.5))

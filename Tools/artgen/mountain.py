@@ -2,7 +2,7 @@
 import math
 import random
 
-from pixel import Canvas, rgb, with_alpha, mix
+from pixel import Canvas, mix, ramp, rgb, with_alpha
 
 T = 32
 OUT = rgb("#2b2433")
@@ -26,7 +26,6 @@ K0, K1, K2 = rgb("#f0ffff"), rgb("#8ff0ff"), rgb("#3cc0e0")
 CLOUD = [rgb("#6f5f96"), rgb("#8d76ab"), rgb("#b391b8"), rgb("#d9a9b1"), rgb("#f0c2ad"), rgb("#fbdcc0"), rgb("#fff1df")]
 SKY = rgb("#a586b5")
 
-BAYER4 = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 
 
 # ---------------------------------------------------------------- noise
@@ -83,8 +82,8 @@ def _rock_texture(seed):
         for y in range(cy - ry, cy + ry + 1):
             for x in range(cx - rx, cx + rx + 1):
                 d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2
-                if d < 0.6 or (d < 1.0 and BAYER4[y % 4][x % 4] < 8):
-                    c.set(x, y, col)
+                if d < 1.0:
+                    c.set(x, y, col if d < 0.6 else with_alpha(col, round(255 * (1 - d) / 0.4)))
     for _ in range(rnd.randrange(2, 5)):  # pebbles
         x, y = rnd.randrange(3, 28), rnd.randrange(3, 28)
         c.set(x, y, G_HI)
@@ -216,11 +215,7 @@ def cliff_face(kind):
         for xx in range(T):
             p = c.get(xx, y)
             if p[3]:
-                threshold = BAYER4[y % 4][xx % 4] / 16
-                if a < threshold * 0.9:
-                    c.replace(xx, y, (0, 0, 0, 0))
-                else:
-                    c.replace(xx, y, with_alpha(mix(p, CLOUD[2], 1 - a), p[3]))
+                c.replace(xx, y, with_alpha(mix(p, CLOUD[2], 1 - a), round(p[3] * min(1.0, a / 0.9))))
     return c
 
 
@@ -241,8 +236,7 @@ def cloud_sea():
             val = v[y][x]
             light = val - v[(y + 4) % h][(x + 4) % w]   # puffs lit from the upper-left
             f = (val - 0.3) / 0.42 * (len(SEA) - 1) + light * 9
-            f += (BAYER4[y % 4][x % 4] / 16 - 0.5) * 0.55
-            c.replace(x, y, SEA[max(0, min(len(SEA) - 1, int(f)))])
+            c.replace(x, y, ramp(SEA, f - 0.5))
     return c
 
 
@@ -255,9 +249,7 @@ def cloud_wisps():
         for x in range(w):
             val = v[y][x]
             if val > 0.66:
-                a = min(95, int((val - 0.66) * 700))
-                if a > 45 or BAYER4[y % 4][x % 4] < 6:
-                    c.replace(x, y, with_alpha(SEA[5], max(25, a)))
+                c.replace(x, y, with_alpha(SEA[5], min(95, int((val - 0.66) * 700))))
     return c
 
 
@@ -281,9 +273,9 @@ def distant_peak(variant):
             col = (snow_lit if on_lit_side else snow_shade) if snowy else (lit if on_lit_side else shade)
             fade = (y - (h - 40)) / 40
             if fade > 0:
-                if fade > 0.95 or BAYER4[y % 4][x % 4] / 16 < fade:
+                if fade > 0.95:
                     continue
-                col = mix(col, CLOUD[2], fade * 0.6)
+                col = with_alpha(mix(col, CLOUD[2], fade * 0.6), round(255 * (1 - fade)))
             c.replace(x, y, col)
     return c
 
@@ -520,9 +512,10 @@ def snow_drift(variant):
     for y in range(h):
         for x in range(w):
             inside = max(1 - (((x - bx) / rx) ** 2 + ((y - by) / ry) ** 2) for bx, by, rx, ry in blobs)
-            if inside > 0.25 or (inside > 0 and BAYER4[y % 4][x % 4] / 16 < inside * 3):
+            if inside > 0:
                 top = y < h * 0.45
-                c.set(x, y, SN0 if top and inside > 0.4 else SN1 if inside > 0.3 else SN2)
+                col = SN0 if top and inside > 0.4 else SN1 if inside > 0.3 else SN2
+                c.set(x, y, with_alpha(col, round(255 * min(1.0, inside * 4))))
     return c
 
 

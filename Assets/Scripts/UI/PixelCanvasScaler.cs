@@ -3,7 +3,10 @@ using UnityEngine.UI;
 
 namespace TopDown
 {
-    /// <summary>Scales the canvas by the largest whole number that fits the reference resolution, keeping pixels square.</summary>
+    /// <summary>
+    /// Scales the canvas so the reference resolution fits the screen. The UI art is smoothed rather than pixel art,
+    /// so fractional scales are fine and the UI keeps the same proportions at every resolution.
+    /// </summary>
     [RequireComponent(typeof(CanvasScaler))]
     public class PixelCanvasScaler : MonoBehaviour
     {
@@ -11,7 +14,7 @@ namespace TopDown
 
         CanvasScaler scaler;
 
-        public static int Scale { get; private set; } = 1;
+        public static float Scale { get; private set; } = 1f;
 
         void Awake()
         {
@@ -25,8 +28,8 @@ namespace TopDown
 
         void Apply()
         {
-            int scale = Mathf.Max(1, Mathf.FloorToInt(Mathf.Min(
-                (float)Screen.width / referenceResolution.x, (float)Screen.height / referenceResolution.y)));
+            float scale = Mathf.Max(1f, Mathf.Min(
+                (float)Screen.width / referenceResolution.x, (float)Screen.height / referenceResolution.y));
             Scale = scale;
             if (!Mathf.Approximately(scaler.scaleFactor, scale))
                 scaler.scaleFactor = scale;

@@ -276,7 +276,8 @@ namespace TopDown
 
         void AddQuad(VertexHelper vh, float left, float top, RectInt r, Color32 c)
         {
-            float tw = font.Atlas.width, th = font.Atlas.height;
+            // Glyph rects are in font pixels; the atlas may be stored at a higher resolution.
+            float tw = font.Atlas.width / (float)font.AtlasScale, th = font.Atlas.height / (float)font.AtlasScale;
             Vector2 uvMin = new(r.xMin / tw, r.yMin / th);
             Vector2 uvMax = new(r.xMax / tw, r.yMax / th);
             int index = vh.currentVertCount;

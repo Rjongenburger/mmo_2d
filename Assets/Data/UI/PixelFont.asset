@@ -17,6 +17,7 @@ MonoBehaviour:
   lineHeight: 11
   spaceAdvance: 3
   letterSpacing: 1
+  atlasScale: 4
   characters: '!"#%&''()*+,-./0123456789:;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]_abcdefghijklmnopqrstuvwxyz'
   rects:
   - x: 0

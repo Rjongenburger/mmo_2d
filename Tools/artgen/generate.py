@@ -20,33 +20,57 @@ import lab
 import mage
 import mountain
 import ui
-from pixel import sheet
+from pixel import SMOOTH_SCALE as S, extruded, sheet, smoothed
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
+# Gutter (in output px) of extruded edge pixels around every sheet cell. Sprites are bilinear-filtered,
+# so without it a frame's border would bleed in colour from its neighbour.
+PAD = 2
+
+
+def _px(values):
+    return [v * S for v in values] if values else None
+
 
 class Manifest:
-    def __init__(self):
-        self.data = {"ppu": 32, "sheets": [], "singles": [], "props": [], "font": None, "audio": []}
+    """Art is drawn at 32 px per tile and written smoothed at S times that, so every pixel measurement
+    recorded here (sizes, pivots, borders, colliders, sprite rects) is in output pixels and ppu is 32 * S."""
 
-    def save_png(self, canvas, rel_path):
+    def __init__(self):
+        self.data = {"ppu": 32 * S, "sheets": [], "singles": [], "props": [], "font": None, "audio": []}
+
+    def _write(self, canvas, rel_path):
         path = os.path.join(ROOT, rel_path)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         canvas.save(path)
         return rel_path
 
+    def save_png(self, canvas, rel_path):
+        return self._write(smoothed(canvas), rel_path)
+
+    def pack(self, cells, cols, rel_path):
+        """Smooths equally sized cells and packs them row-major with a PAD gutter around each.
+        Returns every cell's rect (x, y, w, h) in Unity's bottom-left texture space."""
+        cells = [smoothed(c) for c in cells]
+        cw, ch = cells[0].w + 2 * PAD, cells[0].h + 2 * PAD
+        rows = (len(cells) + cols - 1) // cols
+        self._write(sheet([extruded(c, PAD) for c in cells], cols), rel_path)
+        return [[(i % cols) * cw + PAD, (rows - 1 - i // cols) * ch + PAD, c.w, c.h] for i, c in enumerate(cells)]
+
     def sheet(self, frames, cols, rel_path, names, pivot, collider=None):
         """Equally sized frames packed row-major; pivot/collider in px from a frame's bottom-left."""
-        self.save_png(sheet(frames, cols), rel_path)
-        self.data["sheets"].append({"path": rel_path, "cellW": frames[0].w, "cellH": frames[0].h, "names": names,
-                                    "pivotX": pivot[0], "pivotY": pivot[1], "collider": collider})
+        rects = self.pack(frames, cols, rel_path)
+        self.data["sheets"].append({"path": rel_path, "cellW": frames[0].w * S, "cellH": frames[0].h * S, "names": names,
+                                    "rects": rects, "pivotX": pivot[0] * S, "pivotY": pivot[1] * S,
+                                    "collider": _px(collider)})
 
     def single(self, canvas, rel_path, pivot=None, border=None, collider=None):
         pivot = pivot or (canvas.w / 2, canvas.h / 2)
         self.save_png(canvas, rel_path)
         self.data["singles"].append({"path": rel_path, "name": os.path.splitext(os.path.basename(rel_path))[0],
-                                     "w": canvas.w, "h": canvas.h, "pivotX": pivot[0], "pivotY": pivot[1],
-                                     "border": list(border) if border else None, "collider": collider})
+                                     "w": canvas.w * S, "h": canvas.h * S, "pivotX": pivot[0] * S, "pivotY": pivot[1] * S,
+                                     "border": _px(border), "collider": _px(collider)})
 
 
 def generate_lab(m):
@@ -67,10 +91,13 @@ def generate_lab(m):
 
 
 def _face_sheet(m, faces, path, prefix, kinds):
-    """Two-tile-tall wall/cliff faces: sheet row 0 holds the upper halves, row 1 the lower halves."""
-    m.save_png(sheet(faces, len(faces)), path)
-    m.data["sheets"].append({"path": path, "cellW": 32, "cellH": 32, "pivotX": 16, "pivotY": 16, "collider": None,
-                             "names": [f"{prefix}_{k}_upper" for k in kinds] + [f"{prefix}_{k}_lower" for k in kinds]})
+    """Two-tile-tall wall/cliff faces, each sliced into an upper and a lower tile."""
+    rects = m.pack(faces, len(faces), path)
+    half = 32 * S
+    m.data["sheets"].append({"path": path, "cellW": half, "cellH": half, "pivotX": half / 2, "pivotY": half / 2,
+                             "collider": None,
+                             "names": [f"{prefix}_{k}_upper" for k in kinds] + [f"{prefix}_{k}_lower" for k in kinds],
+                             "rects": [[x, y + half, w, half] for x, y, w, _ in rects] + [[x, y, w, half] for x, y, w, _ in rects]})
 
 
 def generate_characters(m):
@@ -197,7 +224,8 @@ def generate_ui(m):
 
     atlas, glyphs = font.build_atlas()
     path = m.save_png(atlas, f"{d}/PixelFont.png")
-    m.data["font"] = {"path": path, "glyphHeight": font.GLYPH_H, "lineHeight": font.LINE_HEIGHT,
+    # Glyph metrics stay in font pixels; atlasScale maps them onto the smoothed atlas.
+    m.data["font"] = {"path": path, "atlasScale": S, "glyphHeight": font.GLYPH_H, "lineHeight": font.LINE_HEIGHT,
                       "spaceAdvance": font.SPACE_ADVANCE, "letterSpacing": font.LETTER_SPACING, "glyphs": glyphs}
 
 

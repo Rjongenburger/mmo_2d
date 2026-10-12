@@ -13,6 +13,8 @@ namespace TopDown
         [SerializeField] int lineHeight = 11;
         [SerializeField] int spaceAdvance = 3;
         [SerializeField] int letterSpacing = 1;
+        [Tooltip("Atlas pixels per font pixel (the art generator writes a smoothed atlas at 4x).")]
+        [SerializeField, Min(1)] int atlasScale = 1;
         [SerializeField] string characters = "";
         [Tooltip("Glyph rects in atlas pixels, origin bottom-left, matching 'characters' index for index.")]
         [SerializeField] RectInt[] rects = Array.Empty<RectInt>();
@@ -23,14 +25,17 @@ namespace TopDown
         public int GlyphHeight => glyphHeight;
         public int LineHeight => lineHeight;
         public int LetterSpacing => letterSpacing;
+        public int AtlasScale => atlasScale;
 
-        public void Setup(Texture2D texture, int height, int line, int space, int spacing, string chars, RectInt[] glyphRects)
+        public void Setup(Texture2D texture, int height, int line, int space, int spacing, string chars, RectInt[] glyphRects,
+            int scale = 1)
         {
             atlas = texture;
             glyphHeight = height;
             lineHeight = line;
             spaceAdvance = space;
             letterSpacing = spacing;
+            atlasScale = Mathf.Max(1, scale);
             characters = chars;
             rects = glyphRects;
             lookup = null;

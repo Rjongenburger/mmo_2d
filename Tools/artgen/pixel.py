@@ -18,6 +18,13 @@ def mix(c1, c2, t):
     return tuple(round(c1[i] + (c2[i] - c1[i]) * t) for i in range(4))
 
 
+def ramp(colors, t):
+    """Smoothly blends along a palette; t runs from 0 (first colour) to len(colors) - 1 (last)."""
+    t = max(0.0, min(len(colors) - 1.0, t))
+    i = min(int(t), len(colors) - 2)
+    return mix(colors[i], colors[i + 1], t - i)
+
+
 class Canvas:
     def __init__(self, w, h):
         self.w, self.h = w, h
@@ -177,4 +184,61 @@ def sheet(frames, cols):
     out = Canvas(fw * cols, fh * rows)
     for i, f in enumerate(frames):
         out.blit(f, (i % cols) * fw, (i // cols) * fh)
+    return out
+
+
+# ---- smoothing --------------------------------------------------------
+SMOOTH_SCALE = 4
+
+
+def _scale2x(src):
+    """EPX / Scale2x: doubles a canvas, rounding off stair-stepped diagonals without inventing colours."""
+    w, h, px = src.w, src.h, src.px
+    out = Canvas(w * 2, h * 2)
+    for y in range(h):
+        row, up, down = px[y], px[max(y - 1, 0)], px[min(y + 1, h - 1)]
+        top, bottom = out.px[2 * y], out.px[2 * y + 1]
+        for x in range(w):
+            p, a, d = row[x], up[x], down[x]
+            c, b = row[max(x - 1, 0)], row[min(x + 1, w - 1)]
+            if c != b and a != d:
+                top[2 * x] = a if c == a else p
+                top[2 * x + 1] = b if a == b else p
+                bottom[2 * x] = c if d == c else p
+                bottom[2 * x + 1] = d if b == d else p
+            else:
+                top[2 * x] = top[2 * x + 1] = bottom[2 * x] = bottom[2 * x + 1] = p
+    return out
+
+
+def _halved(src):
+    """2x2 box downsample in premultiplied alpha, so edges get anti-aliased instead of haloed."""
+    out = Canvas(src.w // 2, src.h // 2)
+    for y in range(out.h):
+        r0, r1, orow = src.px[2 * y], src.px[2 * y + 1], out.px[y]
+        for x in range(out.w):
+            q = (r0[2 * x], r0[2 * x + 1], r1[2 * x], r1[2 * x + 1])
+            a = q[0][3] + q[1][3] + q[2][3] + q[3][3]
+            if a:
+                orow[x] = tuple((sum(c[i] * c[3] for c in q) + a // 2) // a for i in range(3)) + ((a + 2) // 4,)
+    return out
+
+
+def smoothed(canvas):
+    """The art is drawn at pixel scale; this renders it SMOOTH_SCALE times larger with clean, anti-aliased
+    edges (Scale2x three times, then halved) so it can be shown with bilinear filtering instead of as pixels."""
+    out = Canvas(canvas.w, canvas.h)
+    out.px = [[p if p[3] else CLEAR for p in row] for row in canvas.px]
+    for _ in range(3):
+        out = _scale2x(out)
+    return _halved(out)
+
+
+def extruded(canvas, pad):
+    """Surrounds a canvas with copies of its edge pixels, so bilinear sampling at a sheet cell's border
+    never picks up the neighbouring cell."""
+    out = Canvas(canvas.w + 2 * pad, canvas.h + 2 * pad)
+    for y in range(out.h):
+        row = canvas.px[min(max(y - pad, 0), canvas.h - 1)]
+        out.px[y] = [row[min(max(x - pad, 0), canvas.w - 1)] for x in range(out.w)]
     return out
