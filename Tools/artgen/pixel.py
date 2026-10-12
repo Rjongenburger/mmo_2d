@@ -224,14 +224,131 @@ def _halved(src):
     return out
 
 
-def smoothed(canvas):
+def _luma(c):
+    return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+
+
+def _soften_outlines(canvas, threshold=70, amount=0.6):
+    """Swaps the near-black silhouette outline for a darker shade of the colour just inside it, so shapes
+    read as shaded edges rather than cartoon ink lines. Inner lines (between parts) are kept."""
+    px, w, h = canvas.px, canvas.w, canvas.h
+    get = lambda x, y: px[y][x] if 0 <= x < w and 0 <= y < h else CLEAR
+    out = [row[:] for row in px]
+    for y in range(h):
+        for x in range(w):
+            p = px[y][x]
+            if not p[3] or _luma(p) > threshold:
+                continue
+            if all(get(x + dx, y + dy)[3] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                continue
+            # the nearest clearly lighter, solid colours within two pixels are what the outline is wrapping
+            for r in (1, 2):
+                inner = [n for dy in range(-r, r + 1) for dx in range(-r, r + 1)
+                         for n in (get(x + dx, y + dy),) if n[3] == 255 and _luma(n) > _luma(p) + 30]
+                if inner:
+                    avg = tuple(sum(n[i] for n in inner) // len(inner) for i in range(3)) + (p[3],)
+                    out[y][x] = mix(p, avg, amount)
+                    break
+    canvas.px = out
+
+
+def _box_blur(grid, w, h, r):
+    """Separable box blur of a float grid with clamped edges."""
+    for horizontal in (True, False):
+        n = w if horizontal else h
+        out = [[0.0] * w for _ in range(h)]
+        for j in range(h if horizontal else w):
+            line = grid[j] if horizontal else [grid[i][j] for i in range(h)]
+            acc = line[0] * (r + 1) + sum(line[min(i, n - 1)] for i in range(1, r + 1))
+            for i in range(n):
+                v = acc / (2 * r + 1)
+                if horizontal:
+                    out[j][i] = v
+                else:
+                    out[i][j] = v
+                acc += line[min(i + r + 1, n - 1)] - line[max(i - r, 0)]
+        grid = out
+    return grid
+
+
+def _form_shade(canvas, radius, strength=0.3):
+    """Soft volume shading: lightens edges facing the upper-left light and darkens those facing away,
+    using the blurred silhouette as a height field. Fully opaque areas (tiles) are left untouched."""
+    w, h = canvas.w, canvas.h
+    height = [[p[3] / 255 for p in row] for row in canvas.px]
+    for _ in range(2):
+        height = _box_blur(height, w, h, radius)
+    lx, ly = -0.6, -0.8   # towards the light, in image space (y down)
+    for y in range(h):
+        row, hy0, hy1 = canvas.px[y], height[max(y - 1, 0)], height[min(y + 1, h - 1)]
+        hrow = height[y]
+        for x in range(w):
+            p = row[x]
+            if not p[3]:
+                continue
+            gx = hrow[min(x + 1, w - 1)] - hrow[max(x - 1, 0)]
+            gy = hy1[x] - hy0[x]
+            # the height falls off towards the edge, so -gradient is the outward-facing normal
+            facing = -(gx * lx + gy * ly) * radius * 1.6
+            k = 1 + max(-1.0, min(1.0, facing)) * strength
+            row[x] = (min(255, round(p[0] * k)), min(255, round(p[1] * k)), min(255, round(p[2] * k)), p[3])
+
+
+def _value_noise(w, h, cell, seed):
+    """Smooth value noise in [-1, 1] that wraps around the canvas size, so tiles stay seamless."""
+    import random
+    rnd = random.Random(seed)
+    gw, gh = max(1, round(w / cell)), max(1, round(h / cell))
+    grid = [[rnd.uniform(-1, 1) for _ in range(gw)] for _ in range(gh)]
+    s = lambda t: t * t * (3 - 2 * t)
+    out = []
+    for y in range(h):
+        fy = y / h * gh
+        y0 = int(fy) % gh
+        y1, ty = (y0 + 1) % gh, s(fy - int(fy))
+        row = []
+        for x in range(w):
+            fx = x / w * gw
+            x0 = int(fx) % gw
+            x1, tx = (x0 + 1) % gw, s(fx - int(fx))
+            top = grid[y0][x0] + (grid[y0][x1] - grid[y0][x0]) * tx
+            bottom = grid[y1][x0] + (grid[y1][x1] - grid[y1][x0]) * tx
+            row.append(top + (bottom - top) * ty)
+        out.append(row)
+    return out
+
+
+def _grain(canvas, strength=0.06):
+    """Subtle surface variation so large fills read as material (stone, wood, cloth) instead of flat paint."""
+    w, h = canvas.w, canvas.h
+    coarse = _value_noise(w, h, SMOOTH_SCALE * 3, 1)
+    fine = _value_noise(w, h, SMOOTH_SCALE, 2)
+    for y in range(h):
+        row = canvas.px[y]
+        for x in range(w):
+            p = row[x]
+            if p[3]:
+                k = 1 + (coarse[y][x] * 0.65 + fine[y][x] * 0.35) * strength
+                row[x] = (min(255, round(p[0] * k)), min(255, round(p[1] * k)), min(255, round(p[2] * k)), p[3])
+
+
+def smoothed(canvas, soften=False, shade=False, grain=False):
     """The art is drawn at pixel scale; this renders it SMOOTH_SCALE times larger with clean, anti-aliased
-    edges (Scale2x three times, then halved) so it can be shown with bilinear filtering instead of as pixels."""
+    edges (Scale2x three times, then halved) so it can be shown with bilinear filtering instead of as pixels.
+    The options push world art towards a more natural look: soften swaps silhouette ink outlines for shaded
+    edges, shade adds soft volume lit from the upper-left and grain adds surface texture."""
     out = Canvas(canvas.w, canvas.h)
     out.px = [[p if p[3] else CLEAR for p in row] for row in canvas.px]
+    if soften:
+        _soften_outlines(out)
     for _ in range(3):
         out = _scale2x(out)
-    return _halved(out)
+    out = _halved(out)
+    if shade:
+        _form_shade(out, radius=SMOOTH_SCALE * 2)
+    if grain:
+        _grain(out)
+    return out
 
 
 def extruded(canvas, pad):

@@ -28,6 +28,18 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 # so without it a frame's border would bleed in colour from its neighbour.
 PAD = 2
 
+# World art gets volume shading; UI, item icons, glowing effects and the soft sky backgrounds stay as drawn.
+LIT_DIRS = ("Assets/Art/Characters/", "Assets/Art/House/", "Assets/Art/Lab/", "Assets/Art/Mountains/")
+
+
+def _style(rel_path):
+    """Props and backgrounds also lose their ink outlines and get surface grain. Characters keep their outlines
+    (they need them to read against the ground) and no grain, which would not move with their limbs. Tiles get
+    neither: their edges continue into the neighbouring tile, and identical grain in every tile shows as a grid."""
+    lit = rel_path.startswith(LIT_DIRS) and "/Background/" not in rel_path
+    prop = lit and "/Characters/" not in rel_path and "/Tiles/" not in rel_path
+    return {"shade": lit, "soften": prop, "grain": prop}
+
 
 def _px(values):
     return [v * S for v in values] if values else None
@@ -47,12 +59,12 @@ class Manifest:
         return rel_path
 
     def save_png(self, canvas, rel_path):
-        return self._write(smoothed(canvas), rel_path)
+        return self._write(smoothed(canvas, **_style(rel_path)), rel_path)
 
     def pack(self, cells, cols, rel_path):
         """Smooths equally sized cells and packs them row-major with a PAD gutter around each.
         Returns every cell's rect (x, y, w, h) in Unity's bottom-left texture space."""
-        cells = [smoothed(c) for c in cells]
+        cells = [smoothed(c, **_style(rel_path)) for c in cells]
         cw, ch = cells[0].w + 2 * PAD, cells[0].h + 2 * PAD
         rows = (len(cells) + cols - 1) // cols
         self._write(sheet([extruded(c, PAD) for c in cells], cols), rel_path)
